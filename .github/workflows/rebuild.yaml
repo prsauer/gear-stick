@@ -14,8 +14,8 @@ jobs:
         run: echo ${{ env.STORAGE_URL }}
       - name: Clone project
         uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
+         with:
+          token: ${{ secrets.PAT }}
       - name: setup node
         uses: actions/setup-node@v3
         with:
