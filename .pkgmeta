@@ -1,8 +1,11 @@
 enable-nolib-creation: no
 
 ignore:
-- README.md
-- src
-- package.json
-- package-lock.json
-- node_modules
+    - README.md
+    - src
+    - dist
+    - package.json
+    - package-lock.json
+    - node_modules
+    - build.sh
+    - CHANGELOG.md
