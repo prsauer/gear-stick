@@ -3,11 +3,7 @@
 WOW_VERSION="100200"
 ADDON_VERSION=$(date '+%Y.%m.%d')
 
-rm -rf build
 rm -rf dist
-
-mkdir build
-mkdir build/GearStick
 
 echo "## Interface: $WOW_VERSION" >> GearStick.toc
 echo "## Title: GearingTool" >> GearStick.toc
@@ -19,7 +15,3 @@ echo "GearingPvE.lua" >> GearStick.toc
 echo "GearStick.lua" >> GearStick.toc
 
 yarn compile
-
-cd build
-zip -r GearStick_$ADDON_VERSION.zip GearStick
-cd ..
