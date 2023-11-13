@@ -9,6 +9,7 @@ echo "## Interface: $WOW_VERSION" > GearStick.toc
 echo "## Title: GearingTool" >> GearStick.toc
 echo "## Author: Armsperson" >> GearStick.toc
 echo "## Version: $ADDON_VERSION" >> GearStick.toc
+echo "## SavedVariables: GearStickSettings" >> GearStick.toc
 echo " " >> GearStick.toc
 echo "Gearing2v2.lua" >> GearStick.toc
 echo "GearingPvE.lua" >> GearStick.toc
