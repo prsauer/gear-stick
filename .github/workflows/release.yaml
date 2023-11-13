@@ -25,6 +25,6 @@ jobs:
       - name: install dependencies
         run: npm ci
       - name: compile
-        run: build.sh
+        run: ./build.sh
       - name: Package and release
         uses: BigWigsMods/packager@v2
