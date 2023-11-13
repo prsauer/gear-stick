@@ -28,4 +28,5 @@ jobs:
         run: bash build.sh
       - name: Package and release
         uses: BigWigsMods/packager@v2
-        releasedir: "build/GearStick"
+        with:
+          args: -r build/GearStick
