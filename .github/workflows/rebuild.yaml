@@ -1,7 +1,7 @@
-name: Do things every 20 minutes
+name: Scheduled build
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/5 * * * *"
 
 jobs:
   release:
