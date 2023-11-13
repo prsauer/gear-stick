@@ -27,5 +27,5 @@ jobs:
       - name: compile
         run: bash build.sh
       - name: Package and release
-        working-directory: ./build/GearStick
         uses: BigWigsMods/packager@v2
+        releasedir: "build/GearStick"
