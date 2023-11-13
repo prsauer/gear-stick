@@ -1,3 +1,5 @@
+#!/bin/bash
+
 WOW_VERSION="100200"
 ADDON_VERSION=$(date '+%Y.%m.%d')
 
