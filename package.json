@@ -1,0 +1,19 @@
+{
+  "name": "gearstick",
+  "version": "1",
+  "main": "src/build.ts",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "compile": "yarn build && node dist/build.js"
+  },
+  "type": "module",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "node-fetch": "^3.3.2",
+    "typescript": "^5.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.9.0"
+  }
+}
