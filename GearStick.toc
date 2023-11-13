@@ -6,3 +6,11 @@
 Gearing2v2.lua
 GearingPvE.lua
 GearStick.lua
+## Interface: 100200
+## Title: GearingTool
+## Author: Armsperson
+## Version: 2023.11.13
+ 
+Gearing2v2.lua
+GearingPvE.lua
+GearStick.lua
