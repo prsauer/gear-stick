@@ -32,5 +32,5 @@ jobs:
           git config --global user.email 'prsauer@users.noreply.github.com'
           git commit -am "autobuild"
           git push
-          git tag 2023.11.12
-          git push origin 2023.11.12
+          git tag "$(date '+%Y.%m.%d')"
+          git push origin "$(date '+%Y.%m.%d')"
