@@ -67,8 +67,10 @@ local frame = CreateFrame("FRAME"); -- Need a frame to respond to events
 frame:RegisterEvent("ADDON_LOADED"); -- Fired when saved variables are loaded
 
 function frame:OnEvent(event, arg1)
-	if GearStickSettings == nil then
-		GearStickSettings = {};
+	if event == "ADDON_LOADED" and arg1 == "GearStick" then
+		if GearStickSettings == nil then
+			GearStickSettings = {};
+		end
 	end
 end
 
@@ -80,7 +82,7 @@ SlashCmdList.GST = function(msg)
 		return
 	end
 	if msg ~= "2v2" and msg ~= "PvE" and msg ~= "Debug" then
-		print("Invalid. Pass one of: 2v2 PvE")
+		print("Invalid. Pass one of: 2v2 PvE Debug")
 		return
 	end
 
