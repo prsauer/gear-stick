@@ -4,7 +4,7 @@ import { Root } from "./types";
 import { closeSync, openSync, writeFileSync } from "fs";
 import { join, resolve } from "path";
 
-const outputFolder = resolve("./build/GearStick");
+const outputFolder = resolve("./");
 async function fetchHistoBlob(name: string) {
   const res = await fetch(process.env.STORAGE_URL + name);
   return (await res.json()) as Root;
