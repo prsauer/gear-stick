@@ -8,10 +8,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: base
     env:
-      STORAGE_PATH: ${{ secrets.STORAGE_PATH }}
+      STORAGE_URL: ${{ secrets.STORAGE_URL }}
     steps:
       - name: SetBuildEnv
-        run: echo ${{ env.STORAGE_PATH }}
+        run: echo ${{ env.STORAGE_URL }}
       - name: Clone project
         uses: actions/checkout@v2
         with:
