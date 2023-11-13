@@ -5,7 +5,7 @@ ADDON_VERSION=$(date '+%Y.%m.%d')
 
 rm -rf dist
 
-echo "## Interface: $WOW_VERSION" >> GearStick.toc
+echo "## Interface: $WOW_VERSION" > GearStick.toc
 echo "## Title: GearingTool" >> GearStick.toc
 echo "## Author: Armsperson" >> GearStick.toc
 echo "## Version: $ADDON_VERSION" >> GearStick.toc
