@@ -13,21 +13,7 @@ jobs:
       GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
       STORAGE_URL: ${{ secrets.STORAGE_URL }}
     steps:
-      - name: SetBuildEnv
-        run: echo "STORAGE_URL=$STORAGE_URL" > .env
       - name: Clone project
         uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: setup node
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16
-      - name: clean npm cache
-        run: npm cache clean -f
-      - name: install dependencies
-        run: npm ci
-      - name: compile
-        run: bash build.sh
       - name: Package and release
         uses: BigWigsMods/packager@v2

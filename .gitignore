@@ -4,6 +4,3 @@ build
 .env
 *.zip
 node_modules
-Gearing2v2.lua
-GearingPvE.lua
-GearStick.toc
