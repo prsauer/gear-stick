@@ -11,10 +11,10 @@ jobs:
     env:
       CF_API_KEY: ${{ secrets.CF_API_KEY }}
       GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
-      STORAGE_PATH: ${{ secrets.STORAGE_PATH }}
+      STORAGE_URL: ${{ secrets.STORAGE_URL }}
     steps:
       - name: SetBuildEnv
-        run: echo "STORAGE_PATH=$STORAGE_PATH" > .env
+        run: echo "STORAGE_URL=$STORAGE_URL" > .env
       - name: Clone project
         uses: actions/checkout@v2
         with:
