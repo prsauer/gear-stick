@@ -15,7 +15,7 @@ jobs:
       STORAGE_PATH: ${{ secrets.STORAGE_PATH }}
     steps:
       - name: SetBuildEnv
-        run: echo "STORAGE_PATH=${{ env.STORAGE_PATH }}" > .env
+        run: echo "STORAGE_PATH=$STORAGE_PATH" > .env
       - name: Clone project
         uses: actions/checkout@v2
         with:
