@@ -12,8 +12,10 @@ local function CreateTTFunc(t)
 			itemID = gear:GetItemID()
 		elseif (t == "SetInventoryItem") then
 			local itemLink = GetInventoryItemLink(arg1, arg2)
-			local gear = Item:CreateFromItemLink(itemLink)
-			itemID = gear:GetItemID()
+			if itemLink ~= nil then
+				local gear = Item:CreateFromItemLink(itemLink)
+				itemID = gear:GetItemID()
+			end
 		else
 			local itemLocation = ItemLocation:CreateFromBagAndSlot(arg1, arg2)
 			if C_Item.DoesItemExist(itemLocation) then
@@ -28,11 +30,11 @@ local function CreateTTFunc(t)
 			if GearStickSettings["2v2"] and usageDb2v2[key] then
 				GameTooltip:AddLine("[2v2]: |cFF11FF00" .. usageDb2v2[key][1] .. "%|r players use this" .. (usageDb2v2[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0)
 			end
-			-- if usageDb3v3[key] then
-			-- 	GameTooltip:AddLine("[3v3]: " .. usageDb3v3[key], 0.90, 0.80, 0.60,  0)
-			-- end
-			if GearStickSettings["PvE"] and usageDbPve[key] then
-				GameTooltip:AddLine("[PvE]: |cFF11FF00" .. usageDbPve[key][1] .. "%|r players use this" .. (usageDbPve[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0)
+			if GearStickSettings["3v3"] and usageDb3v3[key] then
+				GameTooltip:AddLine("[3v3]: |cFF11FF00" .. usageDb3v3[key][1] .. "%|r players use this" .. (usageDb3v3[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0)
+			end
+			if GearStickSettings["PvE"] and usageDbPvE[key] then
+				GameTooltip:AddLine("[PvE]: |cFF11FF00" .. usageDbPvE[key][1] .. "%|r players use this" .. (usageDbPvE[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0)
 			end
 			-- if usageDb[itemID]["SoloShuffle"] then
 			-- 	GameTooltip:AddLine(usageDb[itemID]["SoloShuffle"], 0.90, 0.80, 0.60,  0)
@@ -78,11 +80,11 @@ frame:SetScript("OnEvent", frame.OnEvent);
 
 SlashCmdList.GST = function(msg)
 	if msg == nil or msg == "" then
-		print("Invalid. Pass one of: 2v2 PvE Debug")
+		print("Invalid. Pass one of: 2v2 3v3 PvE Debug")
 		return
 	end
-	if msg ~= "2v2" and msg ~= "PvE" and msg ~= "Debug" then
-		print("Invalid. Pass one of: 2v2 PvE Debug")
+	if msg ~= "2v2" and msg~= "3v3" and msg ~= "PvE" and msg ~= "Debug" then
+		print("Invalid. Pass one of: 2v2 3v3 PvE Debug")
 		return
 	end
 

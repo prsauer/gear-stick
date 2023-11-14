@@ -48,6 +48,11 @@ async function main() {
   console.log(`Fetch: ${data2v2}`);
   const json2v2 = await fetchHistoBlob(data2v2);
   await writeDbLuaFile(json2v2, "usageDb2v2", "Gearing2v2.lua");
+
+  const data3v3 = "composed_3v3_LATEST.json";
+  console.log(`Fetch: ${data3v3}`);
+  const json3v3 = await fetchHistoBlob(data3v3);
+  await writeDbLuaFile(json3v3, "usageDb3v3", "Gearing3v3.lua");
 }
 
 main();

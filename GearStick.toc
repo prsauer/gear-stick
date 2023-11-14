@@ -2,7 +2,9 @@
 ## Title: GearingTool
 ## Author: Armsperson
 ## Version: 2023.11.13
+## SavedVariables: GearStickSettings
  
 Gearing2v2.lua
+Gearing3v3.lua
 GearingPvE.lua
 GearStick.lua
