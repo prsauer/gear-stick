@@ -1,8 +1,9 @@
 ## Interface: 100200
 ## Title: GearingTool
 ## Author: Armsperson
-## Version: 2023.11.14
+## Version: 2023.11.15
 ## SavedVariables: GearStickSettings
+## X-Curse-Project-ID: 937058
  
 Gearing2v2.lua
 Gearing3v3.lua
