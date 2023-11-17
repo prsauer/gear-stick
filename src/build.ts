@@ -13,11 +13,12 @@ async function fetchHistoBlob(name: string) {
 function makeTTLine(
   specId: string,
   item: { id: string; percent: number },
-  isRankOne: boolean
+  isRankOne: boolean,
+  bisName: string
 ) {
   return `["${specId}${item.id}"] = {${item.percent.toFixed(
     1
-  )}, ${isRankOne}},\n`;
+  )}, ${isRankOne}, "${bisName}"},\n`;
 }
 
 async function writeDbLuaFile(data: Root, dbName: string, fileName: string) {
@@ -25,7 +26,16 @@ async function writeDbLuaFile(data: Root, dbName: string, fileName: string) {
   data.forEach((specInfo) => {
     specInfo?.histoMaps.forEach((histoMap) => {
       histoMap.histo.forEach((k, idx) => {
-        lines += makeTTLine(specInfo.specId, k, idx === 0);
+        lines += makeTTLine(
+          specInfo.specId,
+          k,
+          idx === 0,
+          idx > 0
+            ? `${
+                histoMap.histo[0].item.name
+              } (${histoMap.histo[0].percent.toFixed(1)}%)`
+            : ""
+        );
       });
     });
   });

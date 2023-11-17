@@ -4,3 +4,4 @@ build
 .env
 *.zip
 node_modules
+build.local.sh

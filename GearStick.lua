@@ -16,6 +16,12 @@ local function CreateTTFunc(t)
 				local gear = Item:CreateFromItemLink(itemLink)
 				itemID = gear:GetItemID()
 			end
+		elseif (t == "SetBuybackItem") then
+			local itemLink = GetBuybackItemLink(arg1)
+			if itemLink ~= nil then
+				local gear = Item:CreateFromItemLink(itemLink)
+				itemID = gear:GetItemID()
+			end
 		else
 			local itemLocation = ItemLocation:CreateFromBagAndSlot(arg1, arg2)
 			if C_Item.DoesItemExist(itemLocation) then
@@ -28,13 +34,22 @@ local function CreateTTFunc(t)
             -- ["250202459"] = "|cFF11FF0071.4%|r players use this (bis)",
 			local key = currentSpecId .. itemID
 			if GearStickSettings["2v2"] and usageDb2v2[key] then
-				GameTooltip:AddLine("[2v2]: |cFF11FF00" .. usageDb2v2[key][1] .. "%|r players use this" .. (usageDb2v2[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0)
+				GameTooltip:AddLine("[2v2]: |cFF11FF00" .. usageDb2v2[key][1] .. "%|r players use this" .. (usageDb2v2[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0);
+				if usageDb2v2[key][3] ~= "" and GearStickSettings["bis"] then
+					GameTooltip:AddLine("[2v2-bis]: " .. usageDb2v2[key][3], 0.90, 0.80, 0.60,  0);
+				end
 			end
 			if GearStickSettings["3v3"] and usageDb3v3[key] then
-				GameTooltip:AddLine("[3v3]: |cFF11FF00" .. usageDb3v3[key][1] .. "%|r players use this" .. (usageDb3v3[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0)
+				GameTooltip:AddLine("[3v3]: |cFF11FF00" .. usageDb3v3[key][1] .. "%|r players use this" .. (usageDb3v3[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0);
+				if usageDb3v3[key][3] ~= "" and GearStickSettings["bis"] then
+					GameTooltip:AddLine("[3v3-bis]: " .. usageDb3v3[key][3], 0.90, 0.80, 0.60,  0);
+				end
 			end
 			if GearStickSettings["PvE"] and usageDbPvE[key] then
-				GameTooltip:AddLine("[PvE]: |cFF11FF00" .. usageDbPvE[key][1] .. "%|r players use this" .. (usageDbPvE[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0)
+				GameTooltip:AddLine("[PvE]: |cFF11FF00" .. usageDbPvE[key][1] .. "%|r players use this" .. (usageDbPvE[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0);
+				if usageDbPvE[key][3] ~= "" and GearStickSettings["bis"] then
+					GameTooltip:AddLine("[PvE-bis]: " .. usageDbPvE[key][3], 0.90, 0.80, 0.60,  0);
+				end
 			end
 			-- if usageDb[itemID]["SoloShuffle"] then
 			-- 	GameTooltip:AddLine(usageDb[itemID]["SoloShuffle"], 0.90, 0.80, 0.60,  0)
@@ -44,6 +59,7 @@ local function CreateTTFunc(t)
 			-- end
             if GearStickSettings["Debug"] then
                 GameTooltip:AddLine("GT.ItemID: " .. itemID, 1, 0.3, 0.3);
+				GameTooltip:AddLine("GT.SpecId: " .. currentSpecId, 1, 0.3, 0.3);
             end
 		end
 	
@@ -80,11 +96,11 @@ frame:SetScript("OnEvent", frame.OnEvent);
 
 SlashCmdList.GST = function(msg)
 	if msg == nil or msg == "" then
-		print("Invalid. Pass one of: 2v2 3v3 PvE Debug")
+		print("Invalid. Pass one of: 2v2 3v3 PvE bis Debug")
 		return
 	end
-	if msg ~= "2v2" and msg~= "3v3" and msg ~= "PvE" and msg ~= "Debug" then
-		print("Invalid. Pass one of: 2v2 3v3 PvE Debug")
+	if msg ~= "2v2" and msg~= "3v3" and msg ~= "PvE" and msg ~= "bis" and msg ~= "Debug" then
+		print("Invalid. Pass one of: 2v2 3v3 bis PvE Debug")
 		return
 	end
 
