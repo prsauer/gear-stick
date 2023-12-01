@@ -8,8 +8,10 @@ local function CreateTTFunc(t)
 
 		if (t == "SetMerchantItem") then
 			local itemLink = GetMerchantItemLink(arg1)
-			local gear = Item:CreateFromItemLink(itemLink)
-			itemID = gear:GetItemID()
+			if itemLink ~= nil then
+				local gear = Item:CreateFromItemLink(itemLink)
+				itemID = gear:GetItemID()
+			end
 		elseif (t == "SetInventoryItem") then
 			local itemLink = GetInventoryItemLink(arg1, arg2)
 			if itemLink ~= nil then
