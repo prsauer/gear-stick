@@ -22,6 +22,12 @@ local function CreateTTFunc(t)
 				local gear = Item:CreateFromItemLink(itemLink)
 				itemID = gear:GetItemID()
 			end
+		elseif (t == "SetLootItem") then
+			local itemLink = GetLootSlotLink(arg1)
+			if itemLink ~= nil then
+				local gear = Item:CreateFromItemLink(itemLink)
+				itemID = gear:GetItemID()
+			end
 		else
 			local itemLocation = ItemLocation:CreateFromBagAndSlot(arg1, arg2)
 			if C_Item.DoesItemExist(itemLocation) then
@@ -99,7 +105,8 @@ SlashCmdList.GST = function(msg)
 		print("Invalid. Pass one of: 2v2 3v3 PvE bis Debug")
 		return
 	end
-	if msg ~= "2v2" and msg~= "3v3" and msg ~= "PvE" and msg ~= "bis" and msg ~= "Debug" then
+	local msg = string.lower(msg)	
+	if msg ~= "2v2" and msg~= "3v3" and msg ~= "pve" and msg ~= "bis" and msg ~= "debug" then
 		print("Invalid. Pass one of: 2v2 3v3 bis PvE Debug")
 		return
 	end
