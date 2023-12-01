@@ -105,7 +105,6 @@ SlashCmdList.GST = function(msg)
 		print("Invalid. Pass one of: 2v2 3v3 PvE bis Debug")
 		return
 	end
-	local msg = string.lower(msg)
 	if msg ~= "2v2" and msg~= "3v3" and msg ~= "PvE" and msg ~= "bis" and msg ~= "Debug" then
 		print("Invalid. Pass one of: 2v2 3v3 bis PvE Debug")
 		return
