@@ -22,6 +22,12 @@ local function CreateTTFunc(t)
 				local gear = Item:CreateFromItemLink(itemLink)
 				itemID = gear:GetItemID()
 			end
+		elseif (t == "SetLootItem") then
+			local itemLink = GetLootSlotLink(arg1)
+			if itemLink ~= nil then
+				local gear = Item:CreateFromItemLink(itemLink)
+				itemID = gear:GetItemID()
+			end
 		else
 			local itemLocation = ItemLocation:CreateFromBagAndSlot(arg1, arg2)
 			if C_Item.DoesItemExist(itemLocation) then
