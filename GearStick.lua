@@ -53,7 +53,7 @@ local function CreateTTFunc(t)
 					GameTooltip:AddLine("[3v3-bis]: " .. usageDb3v3[key][3], 0.90, 0.80, 0.60,  0);
 				end
 			end
-			if GearStickSettings["PvE"] and usageDbPvE[key] then
+			if GearStickSettings["pve"] and usageDbPvE[key] then
 				GameTooltip:AddLine("[PvE]: |cFF11FF00" .. usageDbPvE[key][1] .. "%|r players use this" .. (usageDbPvE[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0);
 				if usageDbPvE[key][3] ~= "" and GearStickSettings["bis"] then
 					GameTooltip:AddLine("[PvE-bis]: " .. usageDbPvE[key][3], 0.90, 0.80, 0.60,  0);
@@ -104,7 +104,7 @@ frame:SetScript("OnEvent", frame.OnEvent);
 
 SlashCmdList.GST = function(msg)
 	if msg == nil or msg == "" then
-		print("Invalid. Pass one of: 2v2 3v3 PvE bis debug status reset")
+		print("Invalid. Pass one of: 2v2 3v3 pve bis debug status reset")
 		return
 	end
 	-- reset all options
@@ -123,12 +123,8 @@ SlashCmdList.GST = function(msg)
 		end
 		return
 	end
-	-- lazy lowercase fix
-	if msg == "pve" then
-		msg = "PvE"	
-	end
-	if msg ~= "2v2" and msg~= "3v3" and msg ~= "PvE" and msg ~= "bis" and msg ~= "debug" then
-		print("Invalid. Pass one of: 2v2 3v3 bis PvE debug status reset")
+	if msg ~= "2v2" and msg~= "3v3" and msg ~= "pve" and msg ~= "bis" and msg ~= "debug" then
+		print("Invalid. Pass one of: 2v2 3v3 bis pve debug status reset")
 		return
 	end
 
