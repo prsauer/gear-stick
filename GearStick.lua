@@ -102,11 +102,13 @@ end
 
 frame:SetScript("OnEvent", frame.OnEvent);
 
-SlashCmdList.GST = function(msg)
-	if msg == nil or msg == "" then
+SlashCmdList.GST = function(arg1)
+	if arg1 == nil or arg1 == "" then
 		print("Invalid. Pass one of: 2v2 3v3 pve bis debug status reset")
 		return
 	end
+	-- force argument to lowercase
+	local msg = string.lower(arg1)
 	-- reset all options
 	if msg == "reset" then
 		GearStickSettings = {}
