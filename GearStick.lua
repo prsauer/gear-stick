@@ -8,8 +8,10 @@ local function CreateTTFunc(t)
 
 		if (t == "SetMerchantItem") then
 			local itemLink = GetMerchantItemLink(arg1)
-			local gear = Item:CreateFromItemLink(itemLink)
-			itemID = gear:GetItemID()
+			if itemLink ~= nil then
+				local gear = Item:CreateFromItemLink(itemLink)
+				itemID = gear:GetItemID()
+			end
 		elseif (t == "SetInventoryItem") then
 			local itemLink = GetInventoryItemLink(arg1, arg2)
 			if itemLink ~= nil then
@@ -51,7 +53,7 @@ local function CreateTTFunc(t)
 					GameTooltip:AddLine("[3v3-bis]: " .. usageDb3v3[key][3], 0.90, 0.80, 0.60,  0);
 				end
 			end
-			if GearStickSettings["PvE"] and usageDbPvE[key] then
+			if GearStickSettings["pve"] and usageDbPvE[key] then
 				GameTooltip:AddLine("[PvE]: |cFF11FF00" .. usageDbPvE[key][1] .. "%|r players use this" .. (usageDbPvE[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0);
 				if usageDbPvE[key][3] ~= "" and GearStickSettings["bis"] then
 					GameTooltip:AddLine("[PvE-bis]: " .. usageDbPvE[key][3], 0.90, 0.80, 0.60,  0);
@@ -63,13 +65,13 @@ local function CreateTTFunc(t)
 			-- if usageDb[itemID]["PvE"] then
 			-- 	GameTooltip:AddLine(usageDb[itemID]["PvE"], 0.90, 0.80, 0.60,  0)
 			-- end
-            if GearStickSettings["Debug"] then
+            if GearStickSettings["debug"] then
                 GameTooltip:AddLine("GT.ItemID: " .. itemID, 1, 0.3, 0.3);
 				GameTooltip:AddLine("GT.SpecId: " .. currentSpecId, 1, 0.3, 0.3);
             end
 		end
 	
-        if GearStickSettings["Debug"] then
+        if GearStickSettings["debug"] then
 		    GameTooltip:AddLine("GT.TTHook: "..t, 1, 0.3, 0.3);
         end
 		GameTooltip:Show();
@@ -100,14 +102,31 @@ end
 
 frame:SetScript("OnEvent", frame.OnEvent);
 
-SlashCmdList.GST = function(msg)
-	if msg == nil or msg == "" then
-		print("Invalid. Pass one of: 2v2 3v3 PvE bis Debug")
+SlashCmdList.GST = function(arg1)
+	if arg1 == nil or arg1 == "" then
+		print("Invalid. Pass one of: 2v2 3v3 pve bis debug status reset")
 		return
 	end
-	local msg = string.lower(msg)	
+	-- force argument to lowercase
+	local msg = string.lower(arg1)
+	-- reset all options
+	if msg == "reset" then
+		GearStickSettings = {}
+		print("GearStick settings have been reset.")
+		return
+	end
+	-- print current settings to console
+	if msg == "status" then
+		print("")
+		print("GearStick current settings:")
+		print ("---------------------------")
+		for key, value in pairs(GearStickSettings) do
+			print(key, value)
+		end
+		return
+	end
 	if msg ~= "2v2" and msg~= "3v3" and msg ~= "pve" and msg ~= "bis" and msg ~= "debug" then
-		print("Invalid. Pass one of: 2v2 3v3 bis PvE Debug")
+		print("Invalid. Pass one of: 2v2 3v3 bis pve debug status reset")
 		return
 	end
 
