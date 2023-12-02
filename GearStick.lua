@@ -65,13 +65,13 @@ local function CreateTTFunc(t)
 			-- if usageDb[itemID]["PvE"] then
 			-- 	GameTooltip:AddLine(usageDb[itemID]["PvE"], 0.90, 0.80, 0.60,  0)
 			-- end
-            if GearStickSettings["Debug"] then
+            if GearStickSettings["debug"] then
                 GameTooltip:AddLine("GT.ItemID: " .. itemID, 1, 0.3, 0.3);
 				GameTooltip:AddLine("GT.SpecId: " .. currentSpecId, 1, 0.3, 0.3);
             end
 		end
 	
-        if GearStickSettings["Debug"] then
+        if GearStickSettings["debug"] then
 		    GameTooltip:AddLine("GT.TTHook: "..t, 1, 0.3, 0.3);
         end
 		GameTooltip:Show();
@@ -104,12 +104,31 @@ frame:SetScript("OnEvent", frame.OnEvent);
 
 SlashCmdList.GST = function(msg)
 	if msg == nil or msg == "" then
-		print("Invalid. Pass one of: 2v2 3v3 PvE bis Debug")
+		print("Invalid. Pass one of: 2v2 3v3 PvE bis debug status reset")
 		return
 	end
-	local msg = string.lower(msg)	
-	if msg ~= "2v2" and msg~= "3v3" and msg ~= "pve" and msg ~= "bis" and msg ~= "debug" then
-		print("Invalid. Pass one of: 2v2 3v3 bis PvE Debug")
+	-- reset all options
+	if msg == "reset" then
+		GearStickSettings = {}
+		print("GearStick settings have been reset.")
+		return
+	end
+	-- print current settings to console
+	if msg == "status" then
+		print("")
+		print("GearStick current settings:")
+		print ("---------------------------")
+		for key, value in pairs(GearStickSettings) do
+			print(key, value)
+		end
+		return
+	end
+	-- lazy lowercase fix
+	if msg == "pve" then
+		msg = "PvE"	
+	end
+	if msg ~= "2v2" and msg~= "3v3" and msg ~= "PvE" and msg ~= "bis" and msg ~= "debug" then
+		print("Invalid. Pass one of: 2v2 3v3 bis PvE debug status reset")
 		return
 	end
 
