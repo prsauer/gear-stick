@@ -1,36 +1,13 @@
 
-local function createTooltipHandler(t)
+local function createTooltipHandler(accessor, getterName)
 	local ttfunc = function(tip, ...)
 		local itemID = nil
 
 		local currentSpec = GetSpecialization()
 		local currentSpecId = currentSpec and select(1, GetSpecializationInfo(currentSpec)) or "None"
 
-		-- See ln#355 in TooltipDataHandler.lua for more context and a list of all TT handlers and their accessors
 
-		local tooltipData = nil
-
-		if (t == "SetMerchantItem") then
-			tooltipData = C_TooltipInfo.GetMerchantItem(...)
-		elseif (t == "SetInventoryItem") then
-			tooltipData = C_TooltipInfo.GetInventoryItem(...)
-		elseif (t == "SetBuybackItem") then
-			tooltipData = C_TooltipInfo.GetBuybackItem(...)
-		elseif (t == "SetLootItem") then
-			tooltipData = C_TooltipInfo.GetLootItem(...)
-		elseif (t == "SetLootRollItem") then
-			tooltipData = C_TooltipInfo.GetLootRollItem(...)
-		elseif (t == "SetBagItem") then
-			tooltipData = C_TooltipInfo.GetBagItem(...)
-		elseif (t == "SetWeeklyReward") then
-			tooltipData = C_TooltipInfo.GetWeeklyReward(...)
-		elseif (t == "SetGuildBankItem") then
-			tooltipData = C_TooltipInfo.GetGuildBankItem(...)
-		else
-			if GearStickSettings["debug"] then
-				print("GST unhandled tooltip: " .. tip)
-			end 
-		end
+		local tooltipData = C_TooltipInfo[getterName](...)
 
 		if (tooltipData ~= nil and tooltipData['type'] == 0 and tooltipData['id'] ~= nil) then
 			itemID = tooltipData['id']
@@ -70,22 +47,60 @@ local function createTooltipHandler(t)
 		end
 	
         if GearStickSettings["debug"] then
-		    GameTooltip:AddLine("GT.TTHook: "..t, 1, 0.3, 0.3);
+		    GameTooltip:AddLine("GT.TTHook: ".. accessor, 1, 0.3, 0.3);
         end
 		GameTooltip:Show();
 	end
 	return ttfunc
 end
 
+-- See ln#355 in TooltipDataHandler.lua for more context and a list of all TT handlers and their accessors
 do
-	hooksecurefunc(GameTooltip, "SetWeeklyReward", createTooltipHandler("SetWeeklyReward"));
-	hooksecurefunc(GameTooltip, "SetBagItem", createTooltipHandler("SetBagItem"));
-	hooksecurefunc(GameTooltip, "SetBuybackItem", createTooltipHandler("SetBuybackItem"));
-	hooksecurefunc(GameTooltip, "SetMerchantItem", createTooltipHandler("SetMerchantItem"));
-	hooksecurefunc(GameTooltip, "SetInventoryItem", createTooltipHandler("SetInventoryItem"));
-	hooksecurefunc(GameTooltip, "SetGuildBankItem", createTooltipHandler("SetGuildBankItem"));
-	hooksecurefunc(GameTooltip, "SetLootItem", createTooltipHandler("SetLootItem"));
-	hooksecurefunc(GameTooltip, "SetLootRollItem", createTooltipHandler("SetLootRollItem"));
+	local accessors = {
+		SetMerchantItem = "GetMerchantItem",
+		SetItemByID = "GetItemByID",
+		SetInventoryItem = "GetInventoryItem",
+		SetRecipeReagentItem = "GetRecipeReagentItem",
+		SetWeeklyReward = "GetWeeklyReward",
+		SetVoidItem = "GetVoidItem",
+		SetVoidDepositItem = "GetVoidDepositItem",
+		SetVoidWithdrawalItem = "GetVoidWithdrawalItem",
+		SetInboxItem = "GetInboxItem",
+		SetSendMailItem = "GetSendMailItem",
+		SetTradePlayerItem = "GetTradePlayerItem",
+		SetTradeTargetItem = "GetTradeTargetItem",
+		SetQuestItem = "GetQuestItem",
+		SetQuestLogItem = "GetQuestLogItem",
+		SetQuestLogSpecialItem = "GetQuestLogSpecialItem",
+		SetLootItem = "GetLootItem",
+		SetLootRollItem = "GetLootRollItem",
+		SetGuildBankItem = "GetGuildBankItem",
+		SetHeirloomByItemID = "GetHeirloomByItemID",
+		SetRuneforgeResultItem = "GetRuneforgeResultItem",
+		SetTransmogrifyItem = "GetTransmogrifyItem",
+		SetArtifactItem = "GetArtifactItem",
+		SetBagItem = "GetBagItem",
+		SetBagItemChild = "GetBagItemChild",
+		SetBuybackItem = "GetBuybackItem",
+		SetInventoryItemByID = "GetInventoryItemByID",
+		SetItemKey = "GetItemKey",
+		SetLFGDungeonReward = "GetLFGDungeonReward",
+		SetLFGDungeonShortageReward = "GetLFGDungeonShortageReward",
+		SetUpgradeItem = "GetUpgradeItem",
+		SetEquipmentSet = "GetEquipmentSet",
+		SetMerchantCostItem = "GetMerchantCostItem",
+		SetRecipeResultItem = "GetRecipeResultItem",
+		SetRecipeResultItemForOrder = "GetRecipeResultItemForOrder",
+		SetOwnedItemByID = "GetOwnedItemByID",
+		SetHyperlink = "GetHyperlink",
+		SetItemInteractionItem = "GetItemInteractionItem",
+		SetItemByGUID = "GetItemByGUID",
+	};
+
+	local handler = TooltipDataHandlerMixin;
+	for accessor, getterName in pairs(accessors) do
+		hooksecurefunc(GameTooltip, accessor, createTooltipHandler(accessor, getterName));
+	end
 end
 
 local frame = CreateFrame("FRAME"); -- Need a frame to respond to events
