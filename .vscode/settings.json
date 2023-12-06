@@ -1,4 +1,22 @@
 {
-  "Lua.diagnostics.globals": ["SlashCmdList"],
+  "Lua.diagnostics.globals": [
+    "SlashCmdList",
+    "StaticPopup_Hide",
+    "SetItemButtonQuality",
+    "ScrollingFlatPanelMixin",
+    "EditModeSystemMixin",
+    "ScrollUtil",
+    "FrameUtil",
+    "CreateScrollBoxListLinearView",
+    "CreateDataProvider",
+    "GenerateClosure",
+    "ITEM_QUALITY_COLORS",
+    "SetItemButtonTextureVertexColor",
+    "SetItemButtonNormalTextureVertexColor",
+    "CursorUpdate",
+    "CursorOnUpdate",
+    "CurrencyContainerUtil",
+    "HandleModifiedItemClick"
+  ],
   "Lua.diagnostics.disable": ["inject-field"]
 }

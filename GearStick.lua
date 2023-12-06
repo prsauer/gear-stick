@@ -1,43 +1,41 @@
 
-local function CreateTTFunc(t)
-	local ttfunc = function(tip, arg1, arg2)
+local function createTooltipHandler(t)
+	local ttfunc = function(tip, ...)
 		local itemID = nil
 
 		local currentSpec = GetSpecialization()
 		local currentSpecId = currentSpec and select(1, GetSpecializationInfo(currentSpec)) or "None"
 
+		-- See ln#355 in TooltipDataHandler.lua for more context and a list of all TT handlers and their accessors
+
+		local tooltipData = nil
+
 		if (t == "SetMerchantItem") then
-			local itemLink = GetMerchantItemLink(arg1)
-			if itemLink ~= nil then
-				local gear = Item:CreateFromItemLink(itemLink)
-				itemID = gear:GetItemID()
-			end
+			tooltipData = C_TooltipInfo.GetMerchantItem(...)
 		elseif (t == "SetInventoryItem") then
-			local itemLink = GetInventoryItemLink(arg1, arg2)
-			if itemLink ~= nil then
-				local gear = Item:CreateFromItemLink(itemLink)
-				itemID = gear:GetItemID()
-			end
+			tooltipData = C_TooltipInfo.GetInventoryItem(...)
 		elseif (t == "SetBuybackItem") then
-			local itemLink = GetBuybackItemLink(arg1)
-			if itemLink ~= nil then
-				local gear = Item:CreateFromItemLink(itemLink)
-				itemID = gear:GetItemID()
-			end
+			tooltipData = C_TooltipInfo.GetBuybackItem(...)
 		elseif (t == "SetLootItem") then
-			local itemLink = GetLootSlotLink(arg1)
-			if itemLink ~= nil then
-				local gear = Item:CreateFromItemLink(itemLink)
-				itemID = gear:GetItemID()
-			end
+			tooltipData = C_TooltipInfo.GetLootItem(...)
+		elseif (t == "SetLootRollItem") then
+			tooltipData = C_TooltipInfo.GetLootRollItem(...)
+		elseif (t == "SetBagItem") then
+			tooltipData = C_TooltipInfo.GetBagItem(...)
+		elseif (t == "SetWeeklyReward") then
+			tooltipData = C_TooltipInfo.GetWeeklyReward(...)
+		elseif (t == "SetGuildBankItem") then
+			tooltipData = C_TooltipInfo.GetGuildBankItem(...)
 		else
-			local itemLocation = ItemLocation:CreateFromBagAndSlot(arg1, arg2)
-			if C_Item.DoesItemExist(itemLocation) then
-				local itemLink = C_Item.GetItemLink(itemLocation);
-				local gear = Item:CreateFromItemLink(itemLink)
-				itemID = gear:GetItemID()
-			end
+			if GearStickSettings["debug"] then
+				print("GST unhandled tooltip: " .. tip)
+			end 
 		end
+
+		if (tooltipData ~= nil and tooltipData['type'] == 0 and tooltipData['id'] ~= nil) then
+			itemID = tooltipData['id']
+		end
+
 		if itemID then
             -- ["250202459"] = "|cFF11FF0071.4%|r players use this (bis)",
 			local key = currentSpecId .. itemID
@@ -80,13 +78,14 @@ local function CreateTTFunc(t)
 end
 
 do
-	hooksecurefunc(GameTooltip, "SetBagItem", CreateTTFunc("SetBagItem"));
-	hooksecurefunc(GameTooltip, "SetBuybackItem", CreateTTFunc("SetBuybackItem"));
-	hooksecurefunc(GameTooltip, "SetMerchantItem", CreateTTFunc("SetMerchantItem"));
-	hooksecurefunc(GameTooltip, "SetInventoryItem", CreateTTFunc("SetInventoryItem"));
-	hooksecurefunc(GameTooltip, "SetGuildBankItem", CreateTTFunc("SetGuildBankItem"));
-	hooksecurefunc(GameTooltip, "SetLootItem", CreateTTFunc("SetLootItem"));
-	hooksecurefunc(GameTooltip, "SetLootRollItem", CreateTTFunc("SetLootRollItem"));
+	hooksecurefunc(GameTooltip, "SetWeeklyReward", createTooltipHandler("SetWeeklyReward"));
+	hooksecurefunc(GameTooltip, "SetBagItem", createTooltipHandler("SetBagItem"));
+	hooksecurefunc(GameTooltip, "SetBuybackItem", createTooltipHandler("SetBuybackItem"));
+	hooksecurefunc(GameTooltip, "SetMerchantItem", createTooltipHandler("SetMerchantItem"));
+	hooksecurefunc(GameTooltip, "SetInventoryItem", createTooltipHandler("SetInventoryItem"));
+	hooksecurefunc(GameTooltip, "SetGuildBankItem", createTooltipHandler("SetGuildBankItem"));
+	hooksecurefunc(GameTooltip, "SetLootItem", createTooltipHandler("SetLootItem"));
+	hooksecurefunc(GameTooltip, "SetLootRollItem", createTooltipHandler("SetLootRollItem"));
 end
 
 local frame = CreateFrame("FRAME"); -- Need a frame to respond to events
