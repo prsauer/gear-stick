@@ -16,7 +16,8 @@
     "CursorUpdate",
     "CursorOnUpdate",
     "CurrencyContainerUtil",
-    "HandleModifiedItemClick"
+    "HandleModifiedItemClick",
+    "TooltipDataHandlerMixin"
   ],
   "Lua.diagnostics.disable": ["inject-field"]
 }
