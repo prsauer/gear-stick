@@ -1,11 +1,10 @@
 ## Interface: 100200
-## Title: Gear Stick
+## Title: GearingTool
 ## Author: Armsperson
-## Version: 2023.12.09
+## Version: 2023.12.10
 ## SavedVariables: GearStickSettings
 ## X-Curse-Project-ID: 937058
-## IconTexture: Interface\AddOns\GearStick\GSIcon
-
+ 
 Gearing2v2.lua
 Gearing3v3.lua
 GearingPvE.lua
