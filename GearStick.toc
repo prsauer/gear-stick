@@ -1,7 +1,7 @@
 ## Interface: 100200
 ## Title: GearingTool
 ## Author: Armsperson
-## Version: 2023.12.20
+## Version: 2023.12.21
 ## SavedVariables: GearStickSettings
 ## X-Curse-Project-ID: 937058
  
