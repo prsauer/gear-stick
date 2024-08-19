@@ -10,31 +10,48 @@ async function fetchHistoBlob(name: string) {
   return (await res.json()) as Root;
 }
 
-function makeTTLine(
-  specId: string,
-  item: { id: string; percent: number },
-  isRankOne: boolean,
-  bisName: string
-) {
-  return `["${specId}${item.id}"] = {${item.percent.toFixed(
-    1
-  )}, ${isRankOne}, "${bisName}"},\n`;
+const slotTypeToWOWItemLocationIndex = {
+  HEAD: 1,
+  NECK: 2,
+  SHOULDER: 3,
+  CHEST: 5,
+  WAIST: 6,
+  LEGS: 7,
+  FEET: 8,
+  WRIST: 9,
+  HANDS: 10,
+  FINGER_1: 11,
+  FINGER_2: 11,
+  TRINKET_1: 12,
+  TRINKET_2: 12,
+  BACK: 16,
+  MAIN_HAND: 13,
+  OFF_HAND: 14,
+};
+
+function makeTTLine(key: string, item: { id: string; percent: number }, isRankOne: boolean, bisName: string) {
+  return `["${key}"] = {${item.percent.toFixed(1)}, ${isRankOne}, "${bisName}"},\n`;
 }
 
 async function writeDbLuaFile(data: Root, dbName: string, fileName: string) {
   let lines = `${dbName} = {\n`;
   data.forEach((specInfo) => {
     specInfo?.histoMaps.forEach((histoMap) => {
+      if (histoMap.histo[0]) {
+        lines += makeTTLine(
+          `${specInfo.specId}${slotTypeToWOWItemLocationIndex[histoMap.slotType]}`,
+          histoMap.histo[0],
+          true,
+          `${histoMap.histo[0].item.name} (${histoMap.histo[0].percent.toFixed(1)}%)`
+        );
+      }
+
       histoMap.histo.forEach((k, idx) => {
         lines += makeTTLine(
-          specInfo.specId,
+          `${specInfo.specId}${k.id}`,
           k,
           idx === 0,
-          idx > 0
-            ? `${
-                histoMap.histo[0].item.name
-              } (${histoMap.histo[0].percent.toFixed(1)}%)`
-            : ""
+          idx > 0 ? `${histoMap.histo[0].item.name} (${histoMap.histo[0].percent.toFixed(1)}%)` : ""
         );
       });
     });
