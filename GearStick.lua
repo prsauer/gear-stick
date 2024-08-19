@@ -16,22 +16,45 @@ local function createTooltipHandler(accessor, getterName)
 		if itemID then
             -- ["250202459"] = "|cFF11FF0071.4%|r players use this (bis)",
 			local key = currentSpecId .. itemID
-			if GearStickSettings["2v2"] and usageDb2v2[key] then
-				GameTooltip:AddLine("[2v2]: |cFF11FF00" .. usageDb2v2[key][1] .. "%|r players use this" .. (usageDb2v2[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0);
-				if usageDb2v2[key][3] ~= "" and GearStickSettings["bis"] then
-					GameTooltip:AddLine("[2v2-bis]: " .. usageDb2v2[key][3], 0.90, 0.80, 0.60,  0);
+			if GearStickSettings["2v2"] then
+				if usageDb2v2[key] then
+					GameTooltip:AddLine("[2v2]: |cFF11FF00" .. usageDb2v2[key][1] .. "%|r players use this" .. (usageDb2v2[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0);
+					if usageDb2v2[key][3] ~= "" and GearStickSettings["bis"] then
+						GameTooltip:AddLine("[2v2-bis]: " .. usageDb2v2[key][3], 0.90, 0.80, 0.60,  0);
+					end
+				else
+					if GearStickSettings["bis"] then
+						itemInventoryType = C_Item.GetItemInventoryTypeByID(itemID)
+						GameTooltip:AddLine("[2v2-bis]: " .. usageDb2v2[currentSpecId .. itemInventoryType][3], 0.90, 0.80, 0.60,  0);
+					end
 				end
 			end
-			if GearStickSettings["3v3"] and usageDb3v3[key] then
-				GameTooltip:AddLine("[3v3]: |cFF11FF00" .. usageDb3v3[key][1] .. "%|r players use this" .. (usageDb3v3[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0);
-				if usageDb3v3[key][3] ~= "" and GearStickSettings["bis"] then
-					GameTooltip:AddLine("[3v3-bis]: " .. usageDb3v3[key][3], 0.90, 0.80, 0.60,  0);
+
+			if GearStickSettings["3v3"] then
+				if usageDb3v3[key] then
+					GameTooltip:AddLine("[3v3]: |cFF11FF00" .. usageDb3v3[key][1] .. "%|r players use this" .. (usageDb3v3[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0);
+					if usageDb3v3[key][3] ~= "" and GearStickSettings["bis"] then
+						GameTooltip:AddLine("[3v3-bis]: " .. usageDb3v3[key][3], 0.90, 0.80, 0.60,  0);
+					end
+				else
+					if GearStickSettings["bis"] then
+						itemInventoryType = C_Item.GetItemInventoryTypeByID(itemID)
+						GameTooltip:AddLine("[3v3-bis]: " .. usageDb3v3[currentSpecId .. itemInventoryType][3], 0.90, 0.80, 0.60,  0);
+					end
 				end
 			end
-			if GearStickSettings["pve"] and usageDbPvE[key] then
-				GameTooltip:AddLine("[PvE]: |cFF11FF00" .. usageDbPvE[key][1] .. "%|r players use this" .. (usageDbPvE[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0);
-				if usageDbPvE[key][3] ~= "" and GearStickSettings["bis"] then
-					GameTooltip:AddLine("[PvE-bis]: " .. usageDbPvE[key][3], 0.90, 0.80, 0.60,  0);
+
+			if GearStickSettings["pve"] then
+				if usageDbPvE[key] then
+					GameTooltip:AddLine("[PvE]: |cFF11FF00" .. usageDbPvE[key][1] .. "%|r players use this" .. (usageDbPvE[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0);
+					if usageDbPvE[key][3] ~= "" and GearStickSettings["bis"] then
+						GameTooltip:AddLine("[PvE-bis]: " .. usageDbPvE[key][3], 0.90, 0.80, 0.60,  0);
+					end
+				else
+					if GearStickSettings["bis"] then
+						itemInventoryType = C_Item.GetItemInventoryTypeByID(itemID)
+						GameTooltip:AddLine("[PvE-bis]: " .. usageDbPvE[currentSpecId .. itemInventoryType][3], 0.90, 0.80, 0.60,  0);
+					end
 				end
 			end
 			-- if usageDb[itemID]["SoloShuffle"] then
