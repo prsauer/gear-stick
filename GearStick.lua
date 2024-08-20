@@ -23,7 +23,7 @@ local function createTooltipHandler(accessor, getterName)
 						GameTooltip:AddLine("[2v2-bis]: " .. usageDb2v2[key][3], 0.90, 0.80, 0.60,  0);
 					end
 				else
-					if GearStickSettings["bis"] then
+					if GearStickSettings["bis"] and itemInventoryType and usageDb2v2[currentSpecId .. itemInventoryType] then
 						itemInventoryType = C_Item.GetItemInventoryTypeByID(itemID)
 						GameTooltip:AddLine("[2v2-bis]: " .. usageDb2v2[currentSpecId .. itemInventoryType][3], 0.90, 0.80, 0.60,  0);
 					end
@@ -37,7 +37,7 @@ local function createTooltipHandler(accessor, getterName)
 						GameTooltip:AddLine("[3v3-bis]: " .. usageDb3v3[key][3], 0.90, 0.80, 0.60,  0);
 					end
 				else
-					if GearStickSettings["bis"] then
+					if GearStickSettings["bis"] and itemInventoryType and usageDb3v3[currentSpecId .. itemInventoryType] then
 						itemInventoryType = C_Item.GetItemInventoryTypeByID(itemID)
 						GameTooltip:AddLine("[3v3-bis]: " .. usageDb3v3[currentSpecId .. itemInventoryType][3], 0.90, 0.80, 0.60,  0);
 					end
@@ -51,7 +51,7 @@ local function createTooltipHandler(accessor, getterName)
 						GameTooltip:AddLine("[PvE-bis]: " .. usageDbPvE[key][3], 0.90, 0.80, 0.60,  0);
 					end
 				else
-					if GearStickSettings["bis"] then
+					if GearStickSettings["bis"] and itemInventoryType and usageDbPvE[currentSpecId .. itemInventoryType] then
 						itemInventoryType = C_Item.GetItemInventoryTypeByID(itemID)
 						GameTooltip:AddLine("[PvE-bis]: " .. usageDbPvE[currentSpecId .. itemInventoryType][3], 0.90, 0.80, 0.60,  0);
 					end

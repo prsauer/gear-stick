@@ -1,4 +1,4 @@
-## Interface: 100200
+## Interface: 110002
 ## Title: GearingTool
 ## Author: Armsperson
 ## Version: 2024.08.20
