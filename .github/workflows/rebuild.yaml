@@ -2,6 +2,7 @@ name: Scheduled build
 on:
   schedule:
     - cron: "22 5 * * *"
+  workflow_dispatch:
 
 jobs:
   release:
