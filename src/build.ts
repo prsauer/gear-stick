@@ -33,6 +33,10 @@ function makeTTLine(key: string, item: { id: string; percent: number }, isRankOn
   return `["${key}"] = {${item.percent.toFixed(1)}, ${isRankOne}, "${bisName}"},\n`;
 }
 
+function sanitizeItemName(name: string) {
+  return name.replace(/"/g, '\\"');
+}
+
 async function writeDbLuaFile(data: Root, dbName: string, fileName: string) {
   let lines = `${dbName} = {\n`;
   data.forEach((specInfo) => {
@@ -42,7 +46,7 @@ async function writeDbLuaFile(data: Root, dbName: string, fileName: string) {
           `${specInfo.specId}${slotTypeToWOWItemLocationIndex[histoMap.slotType]}`,
           histoMap.histo[0],
           true,
-          `${histoMap.histo[0].item.name} (${histoMap.histo[0].percent.toFixed(1)}%)`
+          `${sanitizeItemName(histoMap.histo[0].item.name)} (${histoMap.histo[0].percent.toFixed(1)}%)`
         );
       }
 
@@ -51,7 +55,7 @@ async function writeDbLuaFile(data: Root, dbName: string, fileName: string) {
           `${specInfo.specId}${k.id}`,
           k,
           idx === 0,
-          idx > 0 ? `${histoMap.histo[0].item.name} (${histoMap.histo[0].percent.toFixed(1)}%)` : ""
+          idx > 0 ? `${sanitizeItemName(histoMap.histo[0].item.name)} (${histoMap.histo[0].percent.toFixed(1)}%)` : ""
         );
       });
     });
