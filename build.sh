@@ -1,7 +1,7 @@
 #!/bin/bash
 
 WOW_VERSION="110002"
-ADDON_VERSION=$(date '+%Y.%m.%d.%k')
+ADDON_VERSION=$(date '+%Y.%m.%d.%H')
 
 rm -rf dist
 

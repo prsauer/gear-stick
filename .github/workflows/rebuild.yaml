@@ -33,5 +33,5 @@ jobs:
           git config --global user.email 'prsauer@users.noreply.github.com'
           git commit -am "autobuild"
           git push
-          git tag "$(date '+%Y.%m.%d.%k')"
-          git push origin "$(date '+%Y.%m.%d.%k')"
+          git tag "$(date '+%Y.%m.%d.%H')"
+          git push origin "$(date '+%Y.%m.%d.%H')"
