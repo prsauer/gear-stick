@@ -17,7 +17,8 @@
     "CursorOnUpdate",
     "CurrencyContainerUtil",
     "HandleModifiedItemClick",
-    "TooltipDataHandlerMixin"
+    "TooltipDataHandlerMixin",
+    "TooltipDataProcessor"
   ],
   "Lua.diagnostics.disable": ["inject-field"],
   "Lua.runtime.version": "Lua 5.1",
@@ -32,5 +33,5 @@
     "table": "disable",
     "utf8": "disable"
   },
-  "Lua.workspace.library": ["~\\.vscode\\extensions\\ketho.wow-api-0.17.4\\Annotations"]
+  "Lua.workspace.library": ["~\\.vscode\\extensions\\ketho.wow-api-0.17.5\\Annotations"]
 }
