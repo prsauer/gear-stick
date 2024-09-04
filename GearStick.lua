@@ -26,8 +26,8 @@ msgFrame.text:SetWidth(200)
 
 local button = CreateFrame("Button", nil, msgFrame)
 button:SetPoint("TOP", msgFrame, "BOTTOM", 0, 10)
-button:SetWidth(200)
-button:SetHeight(25)
+button:SetWidth(128)
+button:SetHeight(32)
 button:SetText("OK")
 button:SetNormalFontObject("GameFontNormal")
 
@@ -146,6 +146,11 @@ SlashCmdList.GST = function(arg1)
 	end
 	-- force argument to lowercase
 	local msg = string.lower(arg1)
+
+	if msg == "news" then
+		msgFrame:Show()
+		return
+	end
 	-- reset all options
 	if msg == "reset" then
 		GearStickSettings = {}
