@@ -1,3 +1,58 @@
+local newsNumber = 0
+local newsText = "Enjoying gearstick tooltips? Check us out at gearstick.io"
+
+local msgFrame = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+msgFrame:SetBackdrop({
+	bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+	edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+	tile = true, tileSize = 16, edgeSize = 16,
+	insets = { left = 3, right = 3, top = 5, bottom = 3 }
+})
+msgFrame:SetBackdropColor(0.1,0.1,0.1,0.9)
+msgFrame:SetBackdropBorderColor(0.4,0.4,0.4)
+msgFrame:SetWidth(200)
+msgFrame:SetHeight(150)
+msgFrame:SetPoint("LEFT", 140, 140)
+msgFrame:SetFrameStrata("TOOLTIP")
+msgFrame:Hide()
+msgFrame.header = msgFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+msgFrame.header:SetPoint("TOPLEFT", 10, -10)
+msgFrame.header:SetText("gearstick updates")
+
+msgFrame.text = msgFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+msgFrame.text:SetPoint("CENTER", 0, 0)
+msgFrame.text:SetText(newsText)
+msgFrame.text:SetWidth(200)
+
+local button = CreateFrame("Button", nil, msgFrame)
+button:SetPoint("TOP", msgFrame, "BOTTOM", 0, 10)
+button:SetWidth(200)
+button:SetHeight(25)
+button:SetText("OK")
+button:SetNormalFontObject("GameFontNormal")
+
+local ntex = button:CreateTexture()
+ntex:SetTexture("Interface/Buttons/UI-Panel-Button-Up")
+ntex:SetTexCoord(0, 0.625, 0, 0.6875)
+ntex:SetAllPoints()	
+button:SetNormalTexture(ntex)
+
+local htex = button:CreateTexture()
+htex:SetTexture("Interface/Buttons/UI-Panel-Button-Highlight")
+htex:SetTexCoord(0, 0.625, 0, 0.6875)
+htex:SetAllPoints()
+button:SetHighlightTexture(htex)
+
+local ptex = button:CreateTexture()
+ptex:SetTexture("Interface/Buttons/UI-Panel-Button-Down")
+ptex:SetTexCoord(0, 0.625, 0, 0.6875)
+ptex:SetAllPoints()
+button:SetPushedTexture(ptex)
+
+button:SetScript("OnClick", function(self, button, down)
+	GearStickSettings["lastNewsNumber"] = newsNumber
+	msgFrame:Hide()
+end)
 
 local function writeTooltip(tooltip, itemID, currentSpecId)
 	local key = currentSpecId .. itemID
@@ -56,6 +111,10 @@ function frame:OnEvent(event, arg1)
 	if event == "ADDON_LOADED" and arg1 == "GearStick" then
 		if GearStickSettings == nil then
 			GearStickSettings = {};
+		end
+		local lastSeen = GearStickSettings["lastNewsNumber"] or 0
+		if newsNumber > lastSeen then
+			msgFrame:Show()
 		end
 	end
 end
