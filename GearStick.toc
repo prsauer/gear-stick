@@ -1,5 +1,5 @@
 ## Interface: 110002
-## Title: GearingTool
+## Title: GearStick
 ## Author: Armsperson
 ## Version: 2024.09.13.05
 ## SavedVariables: GearStickSettings
