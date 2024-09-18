@@ -54,8 +54,82 @@ button:SetScript("OnClick", function(self, button, down)
 	msgFrame:Hide()
 end)
 
+local function debug(tbl)
+	for key, value in pairs(tbl) do
+		print(key, value)
+	end
+end
+
+local function GetStatsKeyFromTooltipHelper(...)
+	--["CRIT_RATING", "VERSATILITY", "HASTE_RATING", "MASTERY_RATING"]
+	local crit = ""
+	local versa = ""
+	local haste = ""
+	local mast = ""
+	local count = 0
+	for i = 1, select("#", ...) do
+		local region = select(i, ...)
+		if region and region:GetObjectType() == "FontString" then
+			local text = region:GetText() -- string or nil
+			if (text ~= nil and string.find(text, "%+.*Versatility")) then
+				count = count + 1
+				versa = "VERSATILITY"
+			end
+			if (text ~= nil and string.find(text, "%+.*Critical Strike")) then
+				count = count + 1
+				crit = "CRIT_RATING"
+			end
+			if (text ~= nil and string.find(text, "%+.*Haste")) then
+				count = count + 1
+				haste = "HASTE_RATING"
+			end
+			if (text ~= nil and string.find(text, "%+.*Mastery")) then
+				count = count + 1
+				mast = "MASTERY_RATING"
+			end
+		end
+	end
+
+	local rval = ""
+
+	if (count > 0 and crit ~= "") then
+		rval = crit
+		count = count - 1
+		if (count > 0) then
+			rval = rval .. "-"
+		end
+	end
+
+	if (count > 0 and versa ~= "") then
+		rval = rval .. versa
+		count = count - 1
+		if (count > 0) then
+			rval = rval .. "-"
+		end
+	end
+
+	if (count > 0 and haste ~= "") then
+		rval = rval .. haste
+		count = count - 1
+		if (count > 0) then
+			rval = rval .. "-"
+		end
+	end
+
+	if (count > 0 and mast ~= "") then
+		rval = rval .. mast
+	end
+
+	return rval
+end
+
+local function GetStatsKeyFromTooltip(tooltip)
+	return GetStatsKeyFromTooltipHelper(tooltip:GetRegions())
+end
+
 local function writeTooltip(tooltip, itemID, currentSpecId)
-	local key = currentSpecId .. itemID
+	local statsKey = GetStatsKeyFromTooltip(tooltip)
+	local key = currentSpecId .. itemID .. '-' .. statsKey
 	local itemInventoryType = C_Item.GetItemInventoryTypeByID(itemID)
 
 	if GearStickSettings["2v2"] then
