@@ -1,4 +1,4 @@
-local newsNumber = 0
+local newsNumber = 1
 local newsText = "Enjoying gearstick tooltips? Check us out at gearstick.io"
 
 local msgFrame = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
