@@ -8,4 +8,6 @@
 Gearing2v2.lua
 Gearing3v3.lua
 GearingPvE.lua
+Loadouts.lua
+Talents.lua
 GearStick.lua

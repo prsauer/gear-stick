@@ -1,0 +1,11 @@
+
+> gearstick@1 compile
+> yarn build && node dist/build.js
+
+yarn run v1.22.19
+$ tsc
+Done in 0.84s.
+Starting build
+Fetch: composed_pve_LATEST.json
+Fetch: composed_2v2_LATEST.json
+Fetch: composed_3v3_LATEST.json
