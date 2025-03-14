@@ -5,3 +5,4 @@ build
 *.zip
 node_modules
 build.local.sh
+.vscode
