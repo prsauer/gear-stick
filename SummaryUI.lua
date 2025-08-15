@@ -84,7 +84,7 @@ local function ShowSummary()
     -- Create the main frame if it doesn't exist
     if not SummaryFrame then
         local frame = CreateFrame("Frame", "SummaryFrame", UIParent, "BackdropTemplate")
-        frame:SetSize(400, 620)
+        frame:SetSize(400, 580)
         frame:SetPoint("CENTER")
         frame:SetFrameStrata("DIALOG")
         
@@ -181,29 +181,31 @@ local function ShowSummary()
     end
     SummaryFrame.slotFrames = {}
     
-    -- Define slot positions to mimic character panel (2 columns + weapons below)
+    -- Define slot positions to mimic character panel (2 columns + trinkets + weapons)
     local slotPositions = {
-        -- Left column
+        -- Left column: HEAD, NECK, SHOULDER, BACK, CHEST, WRIST
         [1] = {x = 40, y = -70},   -- HEAD
         [2] = {x = 40, y = -125},  -- NECK
         [3] = {x = 40, y = -180},  -- SHOULDER
         [15] = {x = 40, y = -235}, -- BACK
         [5] = {x = 40, y = -290},  -- CHEST
-        [6] = {x = 40, y = -345},  -- WAIST
-        [7] = {x = 40, y = -400},  -- LEGS
-        [8] = {x = 40, y = -455},  -- FEET
+        [9] = {x = 40, y = -345},  -- WRIST
         
-        -- Right column
-        [9] = {x = 220, y = -70},  -- WRIST
-        [10] = {x = 220, y = -125}, -- HANDS
-        [11] = {x = 220, y = -180}, -- FINGER_1
-        [12] = {x = 220, y = -235}, -- FINGER_2
-        [13] = {x = 220, y = -290}, -- TRINKET_1
-        [14] = {x = 220, y = -345}, -- TRINKET_2
+        -- Right column: HANDS, WAIST, LEGS, FEET, RING1, RING2
+        [10] = {x = 220, y = -70}, -- HANDS
+        [6] = {x = 220, y = -125}, -- WAIST
+        [7] = {x = 220, y = -180}, -- LEGS
+        [8] = {x = 220, y = -235}, -- FEET
+        [11] = {x = 220, y = -290}, -- FINGER_1
+        [12] = {x = 220, y = -345}, -- FINGER_2
+        
+        -- Trinkets row (between columns and weapons)
+        [13] = {x = 40, y = -410},  -- TRINKET_1
+        [14] = {x = 220, y = -410}, -- TRINKET_2
         
         -- Weapons below (centered)
-        [16] = {x = 40, y = -520},  -- MAIN_HAND
-        [17] = {x = 220, y = -520}  -- OFF_HAND
+        [16] = {x = 40, y = -475},  -- MAIN_HAND
+        [17] = {x = 220, y = -475}  -- OFF_HAND
     }
     
     -- Slot names for display
@@ -253,6 +255,9 @@ local function ShowSummary()
                 local gearInfo = GetGearPopularity(currentSpecID, slotType, itemID, selectedBracket)
                 if gearInfo then
                     gearPercent = gearInfo.percent
+                else
+                    -- Item not found in database = 0% popularity
+                    gearPercent = 0
                 end
             end
             
@@ -284,8 +289,10 @@ local function ShowSummary()
                 gearText:SetTextColor(0.2, 1, 0.2, 1) -- Green
             elseif gearPercent >= 20 then
                 gearText:SetTextColor(1, 1, 0.2, 1) -- Yellow
-            else
+            elseif gearPercent > 0 then
                 gearText:SetTextColor(1, 0.6, 0.2, 1) -- Orange
+            else
+                gearText:SetTextColor(0.8, 0.2, 0.2, 1) -- Red for 0%
             end
         end
         
