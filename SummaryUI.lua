@@ -14,14 +14,10 @@ local function GetGearPopularity(specId, slotType, itemID, bracket)
         return nil
     end
 
-    print("DEBUG GetGearPopularity: specId=", specId, "slotType=", slotType, "itemID=", itemID, "bracket=", bracket)
-
     -- Try to find the gear in the database
     -- First check if there's a direct itemID match (for BIS items)
     local simpleKey = tostring(itemID)
-    print("DEBUG: Checking simple key:", simpleKey)
     if db[simpleKey] then
-        print("DEBUG: Found simple key match!")
         return {
             percent = db[simpleKey][1],
             isBis = db[simpleKey][2],
@@ -32,7 +28,6 @@ local function GetGearPopularity(specId, slotType, itemID, bracket)
     -- If no direct match, try to find the most popular version with stats
     -- Look for keys that start with specId + itemID + "-"
     local keyPrefix = specId .. itemID .. "-"
-    print("DEBUG: Checking complex key prefix:", keyPrefix)
     local bestMatch = nil
     local highestPercent = 0
     local foundKeys = {}
@@ -49,12 +44,6 @@ local function GetGearPopularity(specId, slotType, itemID, bracket)
                 }
             end
         end
-    end
-
-    if #foundKeys > 0 then
-        print("DEBUG: Found complex keys:", table.concat(foundKeys, ", "))
-    else
-        print("DEBUG: No complex keys found")
     end
 
     return bestMatch
@@ -118,6 +107,17 @@ local function ShowSummary()
         frame.title:SetPoint("TOPLEFT", 8, -8)
         frame.title:SetText("Gearstick Summary")
 
+        -- Add Enchants button
+        local enchantsButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+        enchantsButton:SetSize(80, 22)
+        enchantsButton:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, -5)
+        enchantsButton:SetText("Enchants")
+        enchantsButton:SetScript("OnClick", function()
+            if GST_Enchants and GST_Enchants.SlashCmd then
+                GST_Enchants.SlashCmd()
+            end
+        end)
+
         -- Add close button
         local closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
         closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
@@ -157,7 +157,7 @@ local function ShowSummary()
     -- Create bracket dropdown if it doesn't exist
     if not SummaryFrame.bracketDropdown then
         local dropdown = CreateFrame("Frame", "GSTSummaryBracketDropdown", SummaryFrame, "UIDropDownMenuTemplate")
-        dropdown:SetPoint("TOPLEFT", SummaryFrame.title, "TOPRIGHT", 20, -2)
+        dropdown:SetPoint("TOPLEFT", SummaryFrame.title, "BOTTOMLEFT", 90, -10)
         SummaryFrame.bracketDropdown = dropdown
 
         dropdown.initialize = function(self)
@@ -251,35 +251,15 @@ local function ShowSummary()
         local slotType = itemInfo and itemInfo.slotName
         local gearPercent, enchantPercent = nil, nil
 
-        -- Debug output for HEAD slot
-        if slotID == 1 then
-            print("=== HEAD SLOT DEBUG ===")
-            print("itemInfo:", itemInfo and "EXISTS" or "NIL")
-            print("hasItem:", hasItem)
-            print("itemID:", itemID)
-            print("enchantID:", enchantID)
-            print("slotType:", slotType)
-            print("currentSpecID:", currentSpecID)
-            print("selectedBracket:", selectedBracket)
-        end
-
-
-
         if hasItem then
             -- Get gear popularity
             if itemID then
                 local gearInfo = GetGearPopularity(currentSpecID, slotType, itemID, selectedBracket)
                 if gearInfo then
                     gearPercent = gearInfo.percent
-                    if slotID == 1 then
-                        print("HEAD: Found gear data - percent:", gearPercent)
-                    end
                 else
                     -- Item not found in database = 0% popularity
                     gearPercent = 0
-                    if slotID == 1 then
-                        print("HEAD: No gear data found, setting to 0%")
-                    end
                 end
             end
 
@@ -363,17 +343,6 @@ local function ShowSummary()
             local tooltipHasItem = tooltipItemInfo ~= nil
             local tooltipItemID = tooltipItemInfo and tooltipItemInfo.itemID
 
-            -- Debug output for tooltip
-            if slotID == 15 then -- Only debug BACK slot to reduce noise
-                print("=== TOOLTIP DEBUG ===")
-                print("slotID:", slotID)
-                print("tooltipItemInfo:", tooltipItemInfo and "EXISTS" or "NIL")
-                print("tooltipHasItem:", tooltipHasItem)
-                print("tooltipItemID:", tooltipItemID)
-                print("currentSpecID:", currentSpecID)
-                print("selectedBracket:", selectedBracket)
-            end
-
             -- Show gear distribution using new slot-based database
             if GSTSlotGearDb then
                 GameTooltip:AddLine("Top Gear Choices:", 0.2, 1, 0.2)
@@ -388,38 +357,26 @@ local function ShowSummary()
                     end
                 end
 
-                if slotID == 15 then -- Only debug BACK slot
-                    print("TOOLTIP: Found", #slotItems, "items for slot", slotID, "spec", currentSpecID, "bracket",
-                        selectedBracket)
-                end
-
                 -- Sort by rank (should already be sorted, but just in case)
                 table.sort(slotItems, function(a, b) return a.rank < b.rank end)
 
                 -- Show top 5 items
                 for i = 1, math.min(5, #slotItems) do
                     local item = slotItems[i]
-                    
+
                     -- Enhanced matching: compare both item ID and stats
                     local itemMatches = tooltipItemID and tooltipItemID == item.itemId
-                    local statsMatch = tooltipItemInfo and tooltipItemInfo.statsShort and 
-                                      tooltipItemInfo.statsShort == item.statsShort
+                    local statsMatch = tooltipItemInfo and tooltipItemInfo.statsShort and
+                        tooltipItemInfo.statsShort == item.statsShort
                     local isEquipped = itemMatches and (not item.statsShort or item.statsShort == "" or statsMatch)
-                    
+
                     local color = isEquipped and "|cFF00FF00" or "|cFFFFFFFF"
                     local bisText = item.isBis and " (BiS)" or ""
 
-                    -- Debug for NECK slot to see the comparison
-                    if slotID == 2 and i <= 3 then
-                        print("NECK DEBUG: tooltipItemID=", tooltipItemID, "dbItemId=", item.itemId, 
-                              "playerStats=", tooltipItemInfo and tooltipItemInfo.statsShort or "nil",
-                              "dbStats=", item.statsShort, "statsMatch=", statsMatch, "isEquipped=", isEquipped)
-                    end
-
                     local statsDisplay = item.statsShort and item.statsShort ~= "" and (" (" .. item.statsShort .. ")") or
-                    ""
+                        ""
                     GameTooltip:AddLine(
-                    string.format("%s%.1f%% - %s%s%s", color, item.percent, item.itemName, statsDisplay, bisText), 1,
+                        string.format("%s%.1f%% - %s%s%s", color, item.percent, item.itemName, statsDisplay, bisText), 1,
                         1, 1)
                 end
 
@@ -436,9 +393,6 @@ local function ShowSummary()
             local tooltipSlotType = tooltipItemInfo and tooltipItemInfo.slotName
             local tooltipEnchantID = tooltipItemInfo and tooltipItemInfo.enchantID
             if tooltipSlotType and GSTEnchantsDb then
-                GameTooltip:AddLine(" ", 1, 1, 1) -- Spacer
-                GameTooltip:AddLine("Top Enchant Choices:", 0.2, 0.8, 1)
-
                 local enchants = {}
                 for _, enchant in ipairs(GSTEnchantsDb) do
                     if enchant.specId == currentSpecID and
@@ -448,21 +402,23 @@ local function ShowSummary()
                     end
                 end
 
-                -- Sort by rank and show top 5
-                table.sort(enchants, function(a, b) return a.rank < b.rank end)
+                -- Only show enchant section if there are enchants to display
+                if #enchants > 0 then
+                    GameTooltip:AddLine(" ", 1, 1, 1) -- Spacer
+                    GameTooltip:AddLine("Top Enchant Choices:", 0.2, 0.8, 1)
 
-                local playerEnchantID = tooltipEnchantID
-                for i = 1, math.min(5, #enchants) do
-                    local ench = enchants[i]
-                    local color = (playerEnchantID and playerEnchantID == ench.enchantId) and "|cFF00FF00" or
-                        "|cFFFFFFFF"
-                    GameTooltip:AddLine(
-                        string.format("%s#%d (%.1f%%) - %s", color, ench.rank, ench.percent, ench.enchantName), 1, 1,
-                        1)
-                end
+                    -- Sort by rank and show top 5
+                    table.sort(enchants, function(a, b) return a.rank < b.rank end)
 
-                if #enchants == 0 then
-                    GameTooltip:AddLine("No enchant data available", 0.8, 0.8, 0.8)
+                    local playerEnchantID = tooltipEnchantID
+                    for i = 1, math.min(5, #enchants) do
+                        local ench = enchants[i]
+                        local color = (playerEnchantID and playerEnchantID == ench.enchantId) and "|cFF00FF00" or
+                            "|cFFFFFFFF"
+                        GameTooltip:AddLine(
+                            string.format("%s#%d (%.1f%%) - %s", color, ench.rank, ench.percent, ench.enchantName), 1, 1,
+                            1)
+                    end
                 end
             end
 

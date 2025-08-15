@@ -5,11 +5,13 @@ local msgFrame = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
 msgFrame:SetBackdrop({
 	bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
 	edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-	tile = true, tileSize = 16, edgeSize = 16,
+	tile = true,
+	tileSize = 16,
+	edgeSize = 16,
 	insets = { left = 3, right = 3, top = 5, bottom = 3 }
 })
-msgFrame:SetBackdropColor(0.1,0.1,0.1,0.9)
-msgFrame:SetBackdropBorderColor(0.4,0.4,0.4)
+msgFrame:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
+msgFrame:SetBackdropBorderColor(0.4, 0.4, 0.4)
 msgFrame:SetWidth(200)
 msgFrame:SetHeight(150)
 msgFrame:SetPoint("LEFT", 140, 140)
@@ -34,7 +36,7 @@ button:SetNormalFontObject("GameFontNormal")
 local ntex = button:CreateTexture()
 ntex:SetTexture("Interface/Buttons/UI-Panel-Button-Up")
 ntex:SetTexCoord(0, 0.625, 0, 0.6875)
-ntex:SetAllPoints()	
+ntex:SetAllPoints()
 button:SetNormalTexture(ntex)
 
 local htex = button:CreateTexture()
@@ -134,39 +136,48 @@ local function writeTooltip(tooltip, itemID, currentSpecId)
 
 	if GearStickSettings["2v2"] then
 		if usageDb2v2[key] then
-			tooltip:AddLine("[2v2]: |cFF11FF00" .. usageDb2v2[key][1] .. "%|r players use this" .. (usageDb2v2[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0);
+			tooltip:AddLine(
+				"[2v2]: |cFF11FF00" ..
+				usageDb2v2[key][1] .. "%|r players use this" .. (usageDb2v2[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,
+				0);
 			if usageDb2v2[key][3] ~= "" and GearStickSettings["bis"] then
-				tooltip:AddLine("[2v2-bis]: " .. usageDb2v2[key][3], 0.90, 0.80, 0.60,  0);
+				tooltip:AddLine("[2v2-bis]: " .. usageDb2v2[key][3], 0.90, 0.80, 0.60, 0);
 			end
 		else
 			if GearStickSettings["bis"] and itemInventoryType and usageDb2v2[currentSpecId .. itemInventoryType] then
-				tooltip:AddLine("[2v2-bis]: " .. usageDb2v2[currentSpecId .. itemInventoryType][3], 0.90, 0.80, 0.60,  0);
+				tooltip:AddLine("[2v2-bis]: " .. usageDb2v2[currentSpecId .. itemInventoryType][3], 0.90, 0.80, 0.60, 0);
 			end
 		end
 	end
 
 	if GearStickSettings["3v3"] then
 		if usageDb3v3[key] then
-			tooltip:AddLine("[3v3]: |cFF11FF00" .. usageDb3v3[key][1] .. "%|r players use this" .. (usageDb3v3[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0);
+			tooltip:AddLine(
+				"[3v3]: |cFF11FF00" ..
+				usageDb3v3[key][1] .. "%|r players use this" .. (usageDb3v3[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,
+				0);
 			if usageDb3v3[key][3] ~= "" and GearStickSettings["bis"] then
-				tooltip:AddLine("[3v3-bis]: " .. usageDb3v3[key][3], 0.90, 0.80, 0.60,  0);
+				tooltip:AddLine("[3v3-bis]: " .. usageDb3v3[key][3], 0.90, 0.80, 0.60, 0);
 			end
 		else
 			if GearStickSettings["bis"] and itemInventoryType and usageDb3v3[currentSpecId .. itemInventoryType] then
-				tooltip:AddLine("[3v3-bis]: " .. usageDb3v3[currentSpecId .. itemInventoryType][3], 0.90, 0.80, 0.60,  0);
+				tooltip:AddLine("[3v3-bis]: " .. usageDb3v3[currentSpecId .. itemInventoryType][3], 0.90, 0.80, 0.60, 0);
 			end
 		end
 	end
 
 	if GearStickSettings["pve"] then
 		if usageDbPvE[key] then
-			tooltip:AddLine("[PvE]: |cFF11FF00" .. usageDbPvE[key][1] .. "%|r players use this" .. (usageDbPvE[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,  0);
+			tooltip:AddLine(
+				"[PvE]: |cFF11FF00" ..
+				usageDbPvE[key][1] .. "%|r players use this" .. (usageDbPvE[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,
+				0);
 			if usageDbPvE[key][3] ~= "" and GearStickSettings["bis"] then
-				tooltip:AddLine("[PvE-bis]: " .. usageDbPvE[key][3], 0.90, 0.80, 0.60,  0);
+				tooltip:AddLine("[PvE-bis]: " .. usageDbPvE[key][3], 0.90, 0.80, 0.60, 0);
 			end
 		else
 			if GearStickSettings["bis"] and itemInventoryType and usageDbPvE[currentSpecId .. itemInventoryType] then
-				tooltip:AddLine("[PvE-bis]: " .. usageDbPvE[currentSpecId .. itemInventoryType][3], 0.90, 0.80, 0.60,  0);
+				tooltip:AddLine("[PvE-bis]: " .. usageDbPvE[currentSpecId .. itemInventoryType][3], 0.90, 0.80, 0.60, 0);
 			end
 		end
 	end
@@ -178,7 +189,7 @@ local function writeTooltip(tooltip, itemID, currentSpecId)
 	end
 end
 
-local frame = CreateFrame("FRAME"); -- Need a frame to respond to events
+local frame = CreateFrame("FRAME");  -- Need a frame to respond to events
 frame:RegisterEvent("ADDON_LOADED"); -- Fired when saved variables are loaded
 
 function frame:OnEvent(event, arg1)
@@ -194,7 +205,6 @@ function frame:OnEvent(event, arg1)
 end
 
 function GST_OnTooltipSetItem(tooltip, tooltipData)
-
 	local currentSpec = GetSpecialization()
 	local currentSpecId = currentSpec and select(1, GetSpecializationInfo(currentSpec)) or "None"
 
@@ -215,7 +225,7 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, GST_OnTooltip
 
 SlashCmdList.GST = function(arg1)
 	if arg1 == nil or arg1 == "" then
-		print("Invalid. Pass one of: 2v2 3v3 pve bis talents enchants summary news debug status reset")
+		print("Pass one of: 2v2 3v3 pve bis talents enchants summary news debug status reset")
 		GST_Summary.SlashCmd("")
 		return
 	end
@@ -251,14 +261,14 @@ SlashCmdList.GST = function(arg1)
 	if msg == "status" then
 		print("")
 		print("GearStick current settings:")
-		print ("---------------------------")
+		print("---------------------------")
 		for key, value in pairs(GearStickSettings) do
 			print(key, value)
 		end
 		return
 	end
-	if msg ~= "2v2" and msg~= "3v3" and msg ~= "pve" and msg ~= "bis" and msg ~= "debug" then
-		print("Invalid. Pass one of: 2v2 3v3 bis pve debug talents enchants summary status reset")
+	if msg ~= "2v2" and msg ~= "3v3" and msg ~= "pve" and msg ~= "bis" and msg ~= "debug" then
+		print("Pass one of: 2v2 3v3 bis pve debug talents enchants summary status reset")
 		return
 	end
 
