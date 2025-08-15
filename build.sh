@@ -17,6 +17,7 @@ echo "Gearing3v3.lua" >> GearStick.toc
 echo "GearingPvE.lua" >> GearStick.toc
 echo "Loadouts.lua" >> GearStick.toc
 echo "Enchants.lua" >> GearStick.toc
+echo "ItemUtils.lua" >> GearStick.toc
 echo "Talents.lua" >> GearStick.toc
 echo "EnchantsUI.lua" >> GearStick.toc
 echo "SummaryUI.lua" >> GearStick.toc
