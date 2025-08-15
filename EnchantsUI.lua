@@ -256,12 +256,71 @@ local function ListEnchants()
             return (a.rank or 0) < (b.rank or 0)
         end)
         
-        -- Check if player has any enchant in this slot
+        -- Check if player has any enchant in this slot and find its rank/percentage
         local hasAnyEnchant = HasEnchantInSlot(slotType)
+        local playerEnchantInfo = nil
+        
+        if hasAnyEnchant then
+            -- Find which enchant the player has and its rank/percentage
+            for _, enchant in ipairs(enchantList) do
+                local playerHasThisEnchant = false
+                
+                if slotType == "FINGER_1" or slotType == "FINGER_2" then
+                    -- For rings, check both finger slots
+                    for ringSlot = 11, 12 do
+                        local ringLink = GetInventoryItemLink("player", ringSlot)
+                        if ringLink then
+                            local ringEnchantID = GetEnchantIDFromLink(ringLink)
+                            if ringEnchantID and ringEnchantID == enchant.enchantId then
+                                playerHasThisEnchant = true
+                                break
+                            end
+                        end
+                    end
+                elseif slotType == "TRINKET_1" or slotType == "TRINKET_2" then
+                    -- For trinkets, check both trinket slots
+                    for trinketSlot = 13, 14 do
+                        local trinketLink = GetInventoryItemLink("player", trinketSlot)
+                        if trinketLink then
+                            local trinketEnchantID = GetEnchantIDFromLink(trinketLink)
+                            if trinketEnchantID and trinketEnchantID == enchant.enchantId then
+                                playerHasThisEnchant = true
+                                break
+                            end
+                        end
+                    end
+                else
+                    -- For all other slots, check the specific slot
+                    local slotMapping = {
+                        ["HEAD"] = 1, ["NECK"] = 2, ["SHOULDER"] = 3, ["CHEST"] = 5,
+                        ["WAIST"] = 6, ["LEGS"] = 7, ["FEET"] = 8, ["WRIST"] = 9,
+                        ["HANDS"] = 10, ["BACK"] = 15, ["MAIN_HAND"] = 16, ["OFF_HAND"] = 17
+                    }
+                    local slotId = slotMapping[slotType]
+                    if slotId then
+                        local itemLink = GetInventoryItemLink("player", slotId)
+                        if itemLink then
+                            local itemEnchantID = GetEnchantIDFromLink(itemLink)
+                            if itemEnchantID and itemEnchantID == enchant.enchantId then
+                                playerHasThisEnchant = true
+                            end
+                        end
+                    end
+                end
+                
+                if playerHasThisEnchant then
+                    playerEnchantInfo = {
+                        rank = enchant.rank or 0,
+                        percent = enchant.percent or 0
+                    }
+                    break
+                end
+            end
+        end
         
         -- Create slot header
         local slotHeaderFrame = CreateFrame("Frame", nil, EnchantListFrame.content)
-        slotHeaderFrame:SetSize(720, 25)
+        slotHeaderFrame:SetSize(720, 20)
         slotHeaderFrame:SetPoint("TOPLEFT", EnchantListFrame.content, "TOPLEFT", 0, -yOffset)
         
         -- Add slot header background - color based on enchant status
@@ -274,22 +333,24 @@ local function ListEnchants()
         end
         
         -- Add warning icon and slot name text
-        slotHeaderFrame.text = slotHeaderFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-        slotHeaderFrame.text:SetPoint("LEFT", slotHeaderFrame, "LEFT", 10, 0)
+        slotHeaderFrame.text = slotHeaderFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        slotHeaderFrame.text:SetPoint("LEFT", slotHeaderFrame, "LEFT", 8, 0)
         
         local slotText = slotType
         if not hasAnyEnchant then
             slotText = "WARNING " .. slotType .. " NO ENCHANT"
+        elseif playerEnchantInfo then
+            slotText = slotType .. " (Your enchant: #" .. playerEnchantInfo.rank .. " choice, " .. string.format("%.1f", playerEnchantInfo.percent) .. "%)"
         end
         slotHeaderFrame.text:SetText(slotText)
         slotHeaderFrame.text:SetTextColor(1, 1, 1, 1)
         
-        yOffset = yOffset + 30
+        yOffset = yOffset + 25
         
-        -- Add enchant entries
+                    -- Add enchant entries
         for _, enchant in ipairs(enchantList) do
             local enchantFrame = CreateFrame("Frame", nil, EnchantListFrame.content)
-            enchantFrame:SetSize(680, 22)
+            enchantFrame:SetSize(680, 18)
             enchantFrame:SetPoint("TOPLEFT", EnchantListFrame.content, "TOPLEFT", 20, -yOffset)
             
             -- Check if player has this enchant on appropriate slot
@@ -405,10 +466,10 @@ local function ListEnchants()
             idText:SetText(string.format("(ID: %d)", enchant.enchantId or 0))
             idText:SetTextColor(0.5, 0.5, 0.5, 1)
             
-            yOffset = yOffset + 25
+            yOffset = yOffset + 20
         end
         
-        yOffset = yOffset + 10 -- Extra space between slots
+        yOffset = yOffset + 5 -- Extra space between slots
     end
     
     -- Adjust content height based on number of entries
