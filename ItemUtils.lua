@@ -71,18 +71,56 @@ function GST_ItemUtils.HasItemInSlotByName(slotName)
     return GST_ItemUtils.HasItemInSlot(slotID)
 end
 
+-- Extract secondary stats from item link tooltip
+function GST_ItemUtils.GetItemStatsShort(itemLink)
+    if not itemLink then return "" end
+    
+    -- Create a temporary tooltip to read item stats
+    local tooltip = CreateFrame("GameTooltip", "GST_TempTooltip", nil, "GameTooltipTemplate")
+    tooltip:SetOwner(UIParent, "ANCHOR_NONE")
+    tooltip:SetHyperlink(itemLink)
+    
+    local stats = {}
+    
+    -- Parse tooltip for secondary stats
+    for i = 1, tooltip:NumLines() do
+        local line = _G[tooltip:GetName() .. "TextLeft" .. i]
+        if line then
+            local text = line:GetText()
+            if text then
+                if text:find("%+.*Critical Strike") then
+                    table.insert(stats, "Crit")
+                elseif text:find("%+.*Versatility") then
+                    table.insert(stats, "Vers")
+                elseif text:find("%+.*Haste") then
+                    table.insert(stats, "Haste")
+                elseif text:find("%+.*Mastery") then
+                    table.insert(stats, "Mast")
+                end
+            end
+        end
+    end
+    
+    tooltip:Hide()
+    return table.concat(stats, "/")
+end
+
 -- Get complete item info for a slot
 function GST_ItemUtils.GetSlotItemInfo(slotID)
     local itemLink = GetInventoryItemLink("player", slotID)
     if not itemLink then return nil end
 
+    -- Get stats from item tooltip  
+    local statsShort = GST_ItemUtils.GetItemStatsShort(itemLink)
+    
     return {
         link = itemLink,
         itemID = GST_ItemUtils.GetItemIDFromLink(itemLink),
         enchantID = GST_ItemUtils.GetEnchantIDFromLink(itemLink),
         texture = GetInventoryItemTexture("player", slotID),
         slotID = slotID,
-        slotName = GST_ItemUtils.SLOT_NAMES[slotID]
+        slotName = GST_ItemUtils.SLOT_NAMES[slotID],
+        statsShort = statsShort
     }
 end
 

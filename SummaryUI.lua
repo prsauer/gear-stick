@@ -348,7 +348,7 @@ local function ShowSummary()
             end
         end
 
-        -- Add tooltip functionality
+        -- Add tooltip functionality for all slots
         slotFrame:EnableMouse(true)
         slotFrame:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -358,93 +358,91 @@ local function ShowSummary()
             GameTooltip:AddLine(slotName .. " Distribution", 1, 1, 1)
             GameTooltip:AddLine(" ", 1, 1, 1) -- Spacer
 
-            -- Show gear distribution
-            if hasItem and itemID then
-                local gearDbs = {
-                    ["pve"] = usageDbPvE,
-                    ["2v2"] = usageDb2v2,
-                    ["3v3"] = usageDb3v3
-                }
+            -- Get fresh item data for tooltip
+            local tooltipItemInfo = GST_ItemUtils.GetSlotItemInfo(slotID)
+            local tooltipHasItem = tooltipItemInfo ~= nil
+            local tooltipItemID = tooltipItemInfo and tooltipItemInfo.itemID
 
-                local db = gearDbs[selectedBracket]
-                if db then
-                    GameTooltip:AddLine("Top Gear Choices:", 0.2, 1, 0.2)
-
-                    -- Find top gear for this slot by collecting all matching items
-                    local gearItems = {}
-
-                    -- Check for BIS items (simple keys like "2501")
-                    for key, data in pairs(db) do
-                        if type(key) == "string" and key:match("^%d+$") then
-                            local keyItemID = tonumber(key)
-                            if keyItemID then
-                                local itemSlotID = select(9, GetItemInfo(keyItemID)) -- Equipment slot
-                                if itemSlotID == slotID then
-                                    local itemName = GetItemInfo(keyItemID) or ("Item " .. keyItemID)
-                                    gearItems[keyItemID] = {
-                                        name = itemName,
-                                        percent = data[1],
-                                        isBis = data[2],
-                                        equipped = (keyItemID == itemID)
-                                    }
-                                end
-                            end
-                        end
-                    end
-
-                    -- Check for stat variant items (keys like "2502501-HASTE_RATING-VERSATILITY")
-                    for key, data in pairs(db) do
-                        if type(key) == "string" and key:find("%-") then
-                            local keyItemID = key:match("^%d+(%d+)%-")
-                            if keyItemID then
-                                keyItemID = tonumber(keyItemID)
-                                if keyItemID then
-                                    local itemSlotID = select(9, GetItemInfo(keyItemID))
-                                    if itemSlotID == slotID then
-                                        local itemName = GetItemInfo(keyItemID) or ("Item " .. keyItemID)
-                                        local existing = gearItems[keyItemID]
-                                        if not existing or data[1] > existing.percent then
-                                            gearItems[keyItemID] = {
-                                                name = itemName,
-                                                percent = data[1],
-                                                isBis = data[2],
-                                                equipped = (keyItemID == itemID)
-                                            }
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-
-                    -- Sort and display top 5
-                    local sortedGear = {}
-                    for itemId, info in pairs(gearItems) do
-                        table.insert(sortedGear, info)
-                    end
-                    table.sort(sortedGear, function(a, b) return a.percent > b.percent end)
-
-                    for i = 1, math.min(5, #sortedGear) do
-                        local item = sortedGear[i]
-                        local color = item.equipped and "|cFF00FF00" or "|cFFFFFFFF"
-                        local bisText = item.isBis and " (BiS)" or ""
-                        GameTooltip:AddLine(string.format("%s%.1f%% - %s%s", color, item.percent, item.name, bisText), 1,
-                            1, 1)
-                    end
-                end
-            else
-                GameTooltip:AddLine("No item equipped", 0.8, 0.8, 0.8)
+            -- Debug output for tooltip
+            if slotID == 15 then -- Only debug BACK slot to reduce noise
+                print("=== TOOLTIP DEBUG ===")
+                print("slotID:", slotID)
+                print("tooltipItemInfo:", tooltipItemInfo and "EXISTS" or "NIL")
+                print("tooltipHasItem:", tooltipHasItem)
+                print("tooltipItemID:", tooltipItemID)
+                print("currentSpecID:", currentSpecID)
+                print("selectedBracket:", selectedBracket)
             end
 
+            -- Show gear distribution using new slot-based database
+            if GSTSlotGearDb then
+                GameTooltip:AddLine("Top Gear Choices:", 0.2, 1, 0.2)
+
+                -- Find items for this slot from the new database
+                local slotItems = {}
+                for _, item in ipairs(GSTSlotGearDb) do
+                    if item.slotId == slotID and
+                        item.specId == currentSpecID and
+                        item.bracket == selectedBracket then
+                        table.insert(slotItems, item)
+                    end
+                end
+
+                if slotID == 15 then -- Only debug BACK slot
+                    print("TOOLTIP: Found", #slotItems, "items for slot", slotID, "spec", currentSpecID, "bracket",
+                        selectedBracket)
+                end
+
+                -- Sort by rank (should already be sorted, but just in case)
+                table.sort(slotItems, function(a, b) return a.rank < b.rank end)
+
+                -- Show top 5 items
+                for i = 1, math.min(5, #slotItems) do
+                    local item = slotItems[i]
+                    
+                    -- Enhanced matching: compare both item ID and stats
+                    local itemMatches = tooltipItemID and tooltipItemID == item.itemId
+                    local statsMatch = tooltipItemInfo and tooltipItemInfo.statsShort and 
+                                      tooltipItemInfo.statsShort == item.statsShort
+                    local isEquipped = itemMatches and (not item.statsShort or item.statsShort == "" or statsMatch)
+                    
+                    local color = isEquipped and "|cFF00FF00" or "|cFFFFFFFF"
+                    local bisText = item.isBis and " (BiS)" or ""
+
+                    -- Debug for NECK slot to see the comparison
+                    if slotID == 2 and i <= 3 then
+                        print("NECK DEBUG: tooltipItemID=", tooltipItemID, "dbItemId=", item.itemId, 
+                              "playerStats=", tooltipItemInfo and tooltipItemInfo.statsShort or "nil",
+                              "dbStats=", item.statsShort, "statsMatch=", statsMatch, "isEquipped=", isEquipped)
+                    end
+
+                    local statsDisplay = item.statsShort and item.statsShort ~= "" and (" (" .. item.statsShort .. ")") or
+                    ""
+                    GameTooltip:AddLine(
+                    string.format("%s%.1f%% - %s%s%s", color, item.percent, item.itemName, statsDisplay, bisText), 1,
+                        1, 1)
+                end
+
+                if #slotItems == 0 then
+                    GameTooltip:AddLine("No gear data for this slot", 0.8, 0.8, 0.8)
+                end
+            else
+                GameTooltip:AddLine("Slot gear database not loaded", 0.8, 0.8, 0.8)
+            end
+
+
+
             -- Show enchant distribution
-            if slotType and GSTEnchantsDb then
+            local tooltipSlotType = tooltipItemInfo and tooltipItemInfo.slotName
+            local tooltipEnchantID = tooltipItemInfo and tooltipItemInfo.enchantID
+            if tooltipSlotType and GSTEnchantsDb then
                 GameTooltip:AddLine(" ", 1, 1, 1) -- Spacer
                 GameTooltip:AddLine("Top Enchant Choices:", 0.2, 0.8, 1)
 
                 local enchants = {}
                 for _, enchant in ipairs(GSTEnchantsDb) do
                     if enchant.specId == currentSpecID and
-                        enchant.slotType == slotType and
+                        enchant.slotType == tooltipSlotType and
                         enchant.bracket == selectedBracket then
                         table.insert(enchants, enchant)
                     end
@@ -453,13 +451,14 @@ local function ShowSummary()
                 -- Sort by rank and show top 5
                 table.sort(enchants, function(a, b) return a.rank < b.rank end)
 
-                local playerEnchantID = enchantID
+                local playerEnchantID = tooltipEnchantID
                 for i = 1, math.min(5, #enchants) do
                     local ench = enchants[i]
                     local color = (playerEnchantID and playerEnchantID == ench.enchantId) and "|cFF00FF00" or
                         "|cFFFFFFFF"
                     GameTooltip:AddLine(
-                        string.format("%s#%d (%.1f%%) - %s", color, ench.rank, ench.percent, ench.enchantName), 1, 1, 1)
+                        string.format("%s#%d (%.1f%%) - %s", color, ench.rank, ench.percent, ench.enchantName), 1, 1,
+                        1)
                 end
 
                 if #enchants == 0 then

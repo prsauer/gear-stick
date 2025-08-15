@@ -30,6 +30,26 @@ const slotTypeToWOWItemLocationIndex = {
   OFF_HAND: 14,
 };
 
+// Correct slot mapping for summary tooltips
+const slotTypeToCorrectWOWSlot = {
+  HEAD: 1,
+  NECK: 2,
+  SHOULDER: 3,
+  CHEST: 5,
+  WAIST: 6,
+  LEGS: 7,
+  FEET: 8,
+  WRIST: 9,
+  HANDS: 10,
+  FINGER_1: 11,
+  FINGER_2: 12,
+  TRINKET_1: 13,
+  TRINKET_2: 14,
+  BACK: 15,
+  MAIN_HAND: 16,
+  OFF_HAND: 17,
+};
+
 function makeTTLine(
   key: string,
   item: { id: string; percent: number },
@@ -311,6 +331,133 @@ async function compileEnchants(
   closeSync(fout);
 }
 
+async function compileSlotBasedGear(
+  data: { bracket: string; data: Root }[],
+  fileName: string
+) {
+  let lines = `GSTSlotGearDb = {\n`;
+
+  for (const { bracket, data: bracketData } of data) {
+    for (const specInfo of bracketData) {
+      specInfo?.histoMaps.forEach((histoMap) => {
+        const slotID = slotTypeToCorrectWOWSlot[histoMap.slotType];
+        if (slotID) {
+          // Add top 10 items for each slot
+          histoMap.histo.slice(0, 10).forEach((item, idx) => {
+            lines += `  {\n`;
+            lines += `    ["bracket"] = "${bracket}",\n`;
+            lines += `    ["specId"] = ${parseInt(specInfo.specId)},\n`;
+            lines += `    ["slotId"] = ${slotID},\n`;
+            lines += `    ["slotType"] = "${histoMap.slotType}",\n`;
+            lines += `    ["itemId"] = ${item.item.item.id},\n`;
+            lines += `    ["variantId"] = ${parseInt(item.id)},\n`;
+            lines += `    ["itemName"] = "${sanitizeItemName(
+              item.item.name
+            )}",\n`;
+            // Add detailed stats info to distinguish variants - only secondary stats
+            const primaryStats = [
+              "Stamina",
+              "Strength",
+              "Intellect",
+              "Agility",
+              "Spirit",
+            ];
+            const statsInfo = item.item.stats
+              ? item.item.stats
+                  .map((s) => s.type?.name || s.type)
+                  .filter((stat) => {
+                    const statName =
+                      typeof stat === "string"
+                        ? stat
+                        : (stat as any)?.name || String(stat);
+                    return statName && !primaryStats.includes(statName);
+                  })
+                  .filter(Boolean)
+                  .join("/")
+              : "";
+            const shortStatsInfo = item.item.stats
+              ? item.item.stats
+                  .map((s) => {
+                    const statType = s.type?.name || s.type;
+                    return statType;
+                  })
+                  .filter((stat) => {
+                    const statName =
+                      typeof stat === "string"
+                        ? stat
+                        : (stat as any)?.name || String(stat);
+                    return statName && !primaryStats.includes(statName);
+                  })
+                  .map((statType) => {
+                    // Convert to shorter names
+                    return typeof statType === "string"
+                      ? statType
+                          .replace("Critical Strike", "Crit")
+                          .replace("Versatility", "Vers")
+                          .replace("Mastery", "Mast")
+                          .replace("Haste", "Haste")
+                      : String(statType);
+                  })
+                  .filter(Boolean)
+                  .join("/")
+              : "";
+
+            lines += `    ["stats"] = "${statsInfo}",\n`;
+            lines += `    ["statsShort"] = "${shortStatsInfo}",\n`;
+            lines += `    ["percent"] = ${item.percent.toFixed(1)},\n`;
+            lines += `    ["rank"] = ${idx + 1},\n`;
+            lines += `    ["isBis"] = ${idx === 0},\n`;
+            lines += `  },\n`;
+          });
+        }
+      });
+    }
+  }
+
+  lines += "};\n\n";
+
+  // Add helper functions for working with stat variants
+  lines += `-- Helper functions for slot gear database\n`;
+  lines += `GSTSlotGearHelpers = {}\n\n`;
+
+  lines += `-- Get items for a specific slot/spec/bracket\n`;
+  lines += `function GSTSlotGearHelpers.GetSlotItems(slotId, specId, bracket)\n`;
+  lines += `    local items = {}\n`;
+  lines += `    for _, item in ipairs(GSTSlotGearDb) do\n`;
+  lines += `        if item.slotId == slotId and item.specId == specId and item.bracket == bracket then\n`;
+  lines += `            table.insert(items, item)\n`;
+  lines += `        end\n`;
+  lines += `    end\n`;
+  lines += `    table.sort(items, function(a, b) return a.rank < b.rank end)\n`;
+  lines += `    return items\n`;
+  lines += `end\n\n`;
+
+  lines += `-- Find best matching variant for equipped item\n`;
+  lines += `function GSTSlotGearHelpers.FindBestMatch(equippedItemId, slotItems)\n`;
+  lines += `    -- First try exact itemId match\n`;
+  lines += `    for _, item in ipairs(slotItems) do\n`;
+  lines += `        if item.itemId == equippedItemId then\n`;
+  lines += `            return item\n`;
+  lines += `        end\n`;
+  lines += `    end\n`;
+  lines += `    return nil\n`;
+  lines += `end\n\n`;
+
+  lines += `-- Format item display with stats\n`;
+  lines += `function GSTSlotGearHelpers.FormatItemDisplay(item)\n`;
+  lines += `    local statsText = ""\n`;
+  lines += `    if item.statsShort and item.statsShort ~= "" then\n`;
+  lines += `        statsText = " (" .. item.statsShort .. ")"\n`;
+  lines += `    end\n`;
+  lines += `    local bisText = item.isBis and " (BiS)" or ""\n`;
+  lines += `    return string.format("%.1f%% - %s%s%s", item.percent, item.itemName, statsText, bisText)\n`;
+  lines += `end\n\n`;
+
+  const fout = openSync(join(outputFolder, fileName), "w");
+  writeFileSync(fout, lines);
+  closeSync(fout);
+}
+
 async function main() {
   console.log("Starting build");
 
@@ -363,6 +510,24 @@ async function main() {
       },
     ],
     "Enchants.lua"
+  );
+
+  await compileSlotBasedGear(
+    [
+      {
+        bracket: "pve",
+        data: pveJson,
+      },
+      {
+        bracket: "2v2",
+        data: json2v2,
+      },
+      {
+        bracket: "3v3",
+        data: json3v3,
+      },
+    ],
+    "SlotGear.lua"
   );
 }
 
