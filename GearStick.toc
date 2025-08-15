@@ -8,6 +8,11 @@
 Gearing2v2.lua
 Gearing3v3.lua
 GearingPvE.lua
+SlotGear.lua
+ItemUtils.lua
 Loadouts.lua
+Enchants.lua
 Talents.lua
+EnchantsUI.lua
 GearStick.lua
+SummaryUI.lua

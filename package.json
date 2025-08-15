@@ -5,7 +5,8 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "compile": "yarn build && node dist/build.js"
+    "compile": "yarn build && node dist/build.js",
+    "compile:local": "yarn build && node dist/build.js && build.local.sh"
   },
   "type": "module",
   "dependencies": {
