@@ -13,3 +13,4 @@ Enchants.lua
 Talents.lua
 EnchantsUI.lua
 GearStick.lua
+SummaryUI.lua

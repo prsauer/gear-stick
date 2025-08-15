@@ -1,5 +1,5 @@
-local newsNumber = 3
-local newsText = "New features: /gst talents & /gst enchants             Check us out at gearstick.io"
+local newsNumber = 4
+local newsText = "New features: /gst talents, /gst enchants & /gst summary             Check us out at gearstick.io"
 
 local msgFrame = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
 msgFrame:SetBackdrop({
@@ -215,7 +215,8 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, GST_OnTooltip
 
 SlashCmdList.GST = function(arg1)
 	if arg1 == nil or arg1 == "" then
-		print("Invalid. Pass one of: 2v2 3v3 pve bis talents enchants news debug status reset")
+		print("Invalid. Pass one of: 2v2 3v3 pve bis talents enchants summary news debug status reset")
+		GST_Summary.SlashCmd("")
 		return
 	end
 	-- force argument to lowercase
@@ -228,6 +229,11 @@ SlashCmdList.GST = function(arg1)
 
 	if msg == "enchants" then
 		GST_Enchants.SlashCmd(arg1)
+		return
+	end
+
+	if msg == "summary" then
+		GST_Summary.SlashCmd(arg1)
 		return
 	end
 
@@ -252,7 +258,7 @@ SlashCmdList.GST = function(arg1)
 		return
 	end
 	if msg ~= "2v2" and msg~= "3v3" and msg ~= "pve" and msg ~= "bis" and msg ~= "debug" then
-		print("Invalid. Pass one of: 2v2 3v3 bis pve debug talents enchants status reset")
+		print("Invalid. Pass one of: 2v2 3v3 bis pve debug talents enchants summary status reset")
 		return
 	end
 

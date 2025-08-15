@@ -19,6 +19,7 @@ echo "Loadouts.lua" >> GearStick.toc
 echo "Enchants.lua" >> GearStick.toc
 echo "Talents.lua" >> GearStick.toc
 echo "EnchantsUI.lua" >> GearStick.toc
+echo "SummaryUI.lua" >> GearStick.toc
 echo "GearStick.lua" >> GearStick.toc
 
 yarn compile
