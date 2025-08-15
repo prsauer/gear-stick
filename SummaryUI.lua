@@ -9,12 +9,19 @@ local function GetGearPopularity(specId, slotType, itemID, bracket)
     }
 
     local db = gearDbs[bracket]
-    if not db then return nil end
+    if not db then
+        print("DEBUG GetGearPopularity: No database for bracket", bracket)
+        return nil
+    end
+
+    print("DEBUG GetGearPopularity: specId=", specId, "slotType=", slotType, "itemID=", itemID, "bracket=", bracket)
 
     -- Try to find the gear in the database
     -- First check if there's a direct itemID match (for BIS items)
     local simpleKey = tostring(itemID)
+    print("DEBUG: Checking simple key:", simpleKey)
     if db[simpleKey] then
+        print("DEBUG: Found simple key match!")
         return {
             percent = db[simpleKey][1],
             isBis = db[simpleKey][2],
@@ -25,11 +32,14 @@ local function GetGearPopularity(specId, slotType, itemID, bracket)
     -- If no direct match, try to find the most popular version with stats
     -- Look for keys that start with specId + itemID + "-"
     local keyPrefix = specId .. itemID .. "-"
+    print("DEBUG: Checking complex key prefix:", keyPrefix)
     local bestMatch = nil
     local highestPercent = 0
+    local foundKeys = {}
 
     for key, data in pairs(db) do
         if type(key) == "string" and string.find(key, keyPrefix, 1, true) == 1 then
+            table.insert(foundKeys, key .. " (" .. data[1] .. "%)")
             if data[1] > highestPercent then
                 highestPercent = data[1]
                 bestMatch = {
@@ -41,7 +51,27 @@ local function GetGearPopularity(specId, slotType, itemID, bracket)
         end
     end
 
+    if #foundKeys > 0 then
+        print("DEBUG: Found complex keys:", table.concat(foundKeys, ", "))
+    else
+        print("DEBUG: No complex keys found")
+    end
+
     return bestMatch
+end
+
+-- Helper function to check if any enchant data exists for a slot
+local function HasEnchantDataForSlot(specId, slotType, bracket)
+    if not GSTEnchantsDb then return false end
+
+    for _, enchant in ipairs(GSTEnchantsDb) do
+        if enchant.specId == specId and
+            enchant.slotType == slotType and
+            enchant.bracket == bracket then
+            return true
+        end
+    end
+    return false
 end
 
 -- Helper function to get enchant popularity
@@ -221,6 +251,18 @@ local function ShowSummary()
         local slotType = itemInfo and itemInfo.slotName
         local gearPercent, enchantPercent = nil, nil
 
+        -- Debug output for HEAD slot
+        if slotID == 1 then
+            print("=== HEAD SLOT DEBUG ===")
+            print("itemInfo:", itemInfo and "EXISTS" or "NIL")
+            print("hasItem:", hasItem)
+            print("itemID:", itemID)
+            print("enchantID:", enchantID)
+            print("slotType:", slotType)
+            print("currentSpecID:", currentSpecID)
+            print("selectedBracket:", selectedBracket)
+        end
+
 
 
         if hasItem then
@@ -229,9 +271,15 @@ local function ShowSummary()
                 local gearInfo = GetGearPopularity(currentSpecID, slotType, itemID, selectedBracket)
                 if gearInfo then
                     gearPercent = gearInfo.percent
+                    if slotID == 1 then
+                        print("HEAD: Found gear data - percent:", gearPercent)
+                    end
                 else
                     -- Item not found in database = 0% popularity
                     gearPercent = 0
+                    if slotID == 1 then
+                        print("HEAD: No gear data found, setting to 0%")
+                    end
                 end
             end
 
@@ -272,28 +320,32 @@ local function ShowSummary()
             end
         end
 
-        -- Create enchant percentage text
-        if enchantPercent then
-            local enchantText = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            enchantText:SetPoint("CENTER", slotFrame, "CENTER", 0, -10)
-            enchantText:SetText(string.format("E:%.0f%%", enchantPercent))
-            enchantText:SetJustifyH("CENTER")
+        -- Only show enchant indicators if enchant data exists for this slot
+        local hasEnchantData = slotType and HasEnchantDataForSlot(currentSpecID, slotType, selectedBracket)
 
-            -- Color based on popularity
-            if enchantPercent >= 50 then
-                enchantText:SetTextColor(0.2, 1, 0.2, 1) -- Green
-            elseif enchantPercent >= 20 then
-                enchantText:SetTextColor(1, 1, 0.2, 1)   -- Yellow
-            else
-                enchantText:SetTextColor(1, 0.6, 0.2, 1) -- Orange
+        if hasEnchantData then
+            if enchantPercent then
+                local enchantText = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+                enchantText:SetPoint("CENTER", slotFrame, "CENTER", 0, -10)
+                enchantText:SetText(string.format("E:%.0f%%", enchantPercent))
+                enchantText:SetJustifyH("CENTER")
+
+                -- Color based on popularity
+                if enchantPercent >= 50 then
+                    enchantText:SetTextColor(0.2, 1, 0.2, 1) -- Green
+                elseif enchantPercent >= 20 then
+                    enchantText:SetTextColor(1, 1, 0.2, 1)   -- Yellow
+                else
+                    enchantText:SetTextColor(1, 0.6, 0.2, 1) -- Orange
+                end
+            elseif hasItem then
+                -- Show "Missing Enchant" only if item exists but no enchant AND enchant data exists for this slot
+                local noEnchantText = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+                noEnchantText:SetPoint("CENTER", slotFrame, "CENTER", 0, -10)
+                noEnchantText:SetText("E: MISSING")
+                noEnchantText:SetTextColor(0.8, 0.2, 0.2, 1) -- Red
+                noEnchantText:SetJustifyH("CENTER")
             end
-        elseif hasItem then
-            -- Show "No Enchant" if item exists but no enchant
-            local noEnchantText = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            noEnchantText:SetPoint("CENTER", slotFrame, "CENTER", 0, -10)
-            noEnchantText:SetText("E:--")
-            noEnchantText:SetTextColor(0.8, 0.2, 0.2, 1) -- Red
-            noEnchantText:SetJustifyH("CENTER")
         end
 
         -- Add tooltip functionality
