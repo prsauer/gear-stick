@@ -1,10 +1,84 @@
 GST_Enchants = {}
 
+-- Helper function to extract enchant ID from item link
+local function GetEnchantIDFromLink(itemLink)
+    if not itemLink then return nil end
+    
+    -- Item link format: |cffffffff|Hitem:itemID:enchantID:gemID1:gemID2:gemID3:gemID4:suffixID:uniqueID:linkLevel:reforgeID:upgradeTypeID:instanceDifficultyID:numBonusIDs:bonusID1:bonusID2:...|h[name]|h|r
+    -- We want to extract the enchantID (second number after itemID)
+    local enchantID = itemLink:match("|Hitem:%d+:(%d+):")
+    if enchantID and enchantID ~= "0" then
+        return tonumber(enchantID)
+    end
+    return nil
+end
+
+-- Helper function to check if player has any enchant in a specific slot
+local function HasEnchantInSlot(slotType)
+    local slotMapping = {
+        ["HEAD"] = 1,
+        ["NECK"] = 2,
+        ["SHOULDER"] = 3,
+        ["CHEST"] = 5,
+        ["WAIST"] = 6,
+        ["LEGS"] = 7,
+        ["FEET"] = 8,
+        ["WRIST"] = 9,
+        ["HANDS"] = 10,
+        ["FINGER_1"] = 11,
+        ["FINGER_2"] = 12,
+        ["TRINKET_1"] = 13,
+        ["TRINKET_2"] = 14,
+        ["BACK"] = 15,
+        ["MAIN_HAND"] = 16,
+        ["OFF_HAND"] = 17
+    }
+    
+    local slotId = slotMapping[slotType]
+    if slotId then
+        local itemLink = GetInventoryItemLink("player", slotId)
+        if itemLink then
+            local itemEnchantID = GetEnchantIDFromLink(itemLink)
+            if itemEnchantID then
+                return true
+            end
+        end
+        
+        -- Special handling for rings (check both finger slots)
+        if slotType == "FINGER_1" or slotType == "FINGER_2" then
+            for ringSlot = 11, 12 do
+                local ringLink = GetInventoryItemLink("player", ringSlot)
+                if ringLink then
+                    local ringEnchantID = GetEnchantIDFromLink(ringLink)
+                    if ringEnchantID then
+                        return true
+                    end
+                end
+            end
+        end
+        
+        -- Special handling for trinkets (check both trinket slots)
+        if slotType == "TRINKET_1" or slotType == "TRINKET_2" then
+            for trinketSlot = 13, 14 do
+                local trinketLink = GetInventoryItemLink("player", trinketSlot)
+                if trinketLink then
+                    local trinketEnchantID = GetEnchantIDFromLink(trinketLink)
+                    if trinketEnchantID then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+    
+    return false
+end
+
 local function ListEnchants()
     -- Create the main frame if it doesn't exist
     if not EnchantListFrame then
         local frame = CreateFrame("Frame", "EnchantListFrame", UIParent, "BackdropTemplate")
-        frame:SetSize(800, 600)
+        frame:SetSize(800, 650)
         frame:SetPoint("CENTER")
         frame:SetFrameStrata("DIALOG")
         
@@ -137,8 +211,8 @@ local function ListEnchants()
 
     -- Set the initial bracket selection if not already set
     if not UIDropDownMenu_GetSelectedValue(EnchantListFrame.bracketDropdown) then
-        UIDropDownMenu_SetSelectedValue(EnchantListFrame.bracketDropdown, "pve")
-        UIDropDownMenu_SetText(EnchantListFrame.bracketDropdown, "PVE")
+        UIDropDownMenu_SetSelectedValue(EnchantListFrame.bracketDropdown, "2v2")
+        UIDropDownMenu_SetText(EnchantListFrame.bracketDropdown, "2V2")
     end
     UIDropDownMenu_SetWidth(EnchantListFrame.bracketDropdown, 80)
     UIDropDownMenu_JustifyText(EnchantListFrame.bracketDropdown, "LEFT")
@@ -182,20 +256,32 @@ local function ListEnchants()
             return (a.rank or 0) < (b.rank or 0)
         end)
         
+        -- Check if player has any enchant in this slot
+        local hasAnyEnchant = HasEnchantInSlot(slotType)
+        
         -- Create slot header
         local slotHeaderFrame = CreateFrame("Frame", nil, EnchantListFrame.content)
         slotHeaderFrame:SetSize(720, 25)
         slotHeaderFrame:SetPoint("TOPLEFT", EnchantListFrame.content, "TOPLEFT", 0, -yOffset)
         
-        -- Add slot header background
+        -- Add slot header background - color based on enchant status
         slotHeaderFrame.bg = slotHeaderFrame:CreateTexture(nil, "BACKGROUND")
         slotHeaderFrame.bg:SetAllPoints()
-        slotHeaderFrame.bg:SetColorTexture(0.2, 0.4, 0.8, 0.8)
+        if hasAnyEnchant then
+            slotHeaderFrame.bg:SetColorTexture(0.2, 0.4, 0.8, 0.8) -- Normal blue
+        else
+            slotHeaderFrame.bg:SetColorTexture(0.8, 0.2, 0.2, 0.8) -- Warning red
+        end
         
-        -- Add slot name text
+        -- Add warning icon and slot name text
         slotHeaderFrame.text = slotHeaderFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         slotHeaderFrame.text:SetPoint("LEFT", slotHeaderFrame, "LEFT", 10, 0)
-        slotHeaderFrame.text:SetText(slotType)
+        
+        local slotText = slotType
+        if not hasAnyEnchant then
+            slotText = "WARNING " .. slotType .. " NO ENCHANT"
+        end
+        slotHeaderFrame.text:SetText(slotText)
         slotHeaderFrame.text:SetTextColor(1, 1, 1, 1)
         
         yOffset = yOffset + 30
@@ -206,9 +292,83 @@ local function ListEnchants()
             enchantFrame:SetSize(680, 22)
             enchantFrame:SetPoint("TOPLEFT", EnchantListFrame.content, "TOPLEFT", 20, -yOffset)
             
+            -- Check if player has this enchant on appropriate slot
+            local hasEnchant = false
+            local slotId = nil
+            
+            -- Map slot types to inventory slot IDs
+            local slotMapping = {
+                ["HEAD"] = 1,
+                ["NECK"] = 2,
+                ["SHOULDER"] = 3,
+                ["CHEST"] = 5,
+                ["WAIST"] = 6,
+                ["LEGS"] = 7,
+                ["FEET"] = 8,
+                ["WRIST"] = 9,
+                ["HANDS"] = 10,
+                ["FINGER_1"] = 11,
+                ["FINGER_2"] = 12,
+                ["TRINKET_1"] = 13,
+                ["TRINKET_2"] = 14,
+                ["BACK"] = 15,
+                ["MAIN_HAND"] = 16,
+                ["OFF_HAND"] = 17
+            }
+            
+            -- Check for this specific enchant in the appropriate slot(s)
+            if slotType == "FINGER_1" or slotType == "FINGER_2" then
+                -- For rings, check both finger slots
+                for ringSlot = 11, 12 do
+                    local ringLink = GetInventoryItemLink("player", ringSlot)
+                    if ringLink then
+                        local ringEnchantID = GetEnchantIDFromLink(ringLink)
+                        if ringEnchantID and ringEnchantID == enchant.enchantId then
+                            hasEnchant = true
+                            break
+                        end
+                    end
+                end
+            elseif slotType == "TRINKET_1" or slotType == "TRINKET_2" then
+                -- For trinkets, check both trinket slots
+                for trinketSlot = 13, 14 do
+                    local trinketLink = GetInventoryItemLink("player", trinketSlot)
+                    if trinketLink then
+                        local trinketEnchantID = GetEnchantIDFromLink(trinketLink)
+                        if trinketEnchantID and trinketEnchantID == enchant.enchantId then
+                            hasEnchant = true
+                            break
+                        end
+                    end
+                end
+            else
+                -- For all other slots, check the specific slot
+                slotId = slotMapping[slotType]
+                if slotId then
+                    local itemLink = GetInventoryItemLink("player", slotId)
+                    if itemLink then
+                        local itemEnchantID = GetEnchantIDFromLink(itemLink)
+                        if itemEnchantID and itemEnchantID == enchant.enchantId then
+                            hasEnchant = true
+                        end
+                    end
+                end
+            end
+            
+            -- Add checkmark if player has this enchant
+            local checkText = enchantFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            checkText:SetPoint("LEFT", enchantFrame, "LEFT", 5, 0)
+            if hasEnchant then
+                checkText:SetText("OK")
+                checkText:SetTextColor(0.2, 1, 0.2, 1) -- Green checkmark
+            else
+                checkText:SetText("")
+            end
+            checkText:SetWidth(18)
+            
             -- Add rank text
             local rankText = enchantFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-            rankText:SetPoint("LEFT", enchantFrame, "LEFT", 5, 0)
+            rankText:SetPoint("LEFT", checkText, "RIGHT", 5, 0)
             rankText:SetText(string.format("#%d", enchant.rank or 0))
             rankText:SetTextColor(0.8, 0.8, 0.8, 1)
             rankText:SetWidth(30)
@@ -236,7 +396,7 @@ local function ListEnchants()
             nameText:SetPoint("LEFT", percentText, "RIGHT", 15, 0)
             nameText:SetText(enchant.enchantName or "Unknown Enchant")
             nameText:SetTextColor(0.9, 0.9, 1, 1)
-            nameText:SetWidth(500)
+            nameText:SetWidth(480)
             nameText:SetJustifyH("LEFT")
             
             -- Add enchant ID for reference (smaller text)
