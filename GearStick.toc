@@ -1,7 +1,7 @@
-## Interface: 110100
+## Interface: 110200
 ## Title: GearStick
 ## Author: Armsperson
-## Version: 2025.08.15.06
+## Version: 2025.08.15.16
 ## SavedVariables: GearStickSettings
 ## X-Curse-Project-ID: 937058
  
@@ -9,10 +9,10 @@ Gearing2v2.lua
 Gearing3v3.lua
 GearingPvE.lua
 SlotGear.lua
-ItemUtils.lua
 Loadouts.lua
 Enchants.lua
+ItemUtils.lua
 Talents.lua
 EnchantsUI.lua
-GearStick.lua
 SummaryUI.lua
+GearStick.lua
