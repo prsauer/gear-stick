@@ -340,7 +340,7 @@ local function ListEnchants()
         if not hasAnyEnchant then
             slotText = "WARNING " .. slotType .. " NO ENCHANT"
         elseif playerEnchantInfo then
-            slotText = slotType .. " (Your enchant: #" .. playerEnchantInfo.rank .. " choice, " .. string.format("%.1f", playerEnchantInfo.percent) .. "%)"
+            slotText = slotType .. " (#" .. playerEnchantInfo.rank .. " - " .. string.format("%.1f", playerEnchantInfo.percent) .. "%)"
         end
         slotHeaderFrame.text:SetText(slotText)
         slotHeaderFrame.text:SetTextColor(1, 1, 1, 1)
