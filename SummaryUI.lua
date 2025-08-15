@@ -109,8 +109,8 @@ local function ShowSummary()
 
         -- Add Enchants button
         local enchantsButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-        enchantsButton:SetSize(80, 22)
-        enchantsButton:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, -5)
+        enchantsButton:SetSize(80, 32)
+        enchantsButton:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, -10)
         enchantsButton:SetText("Enchants")
         enchantsButton:SetScript("OnClick", function()
             if GST_Enchants and GST_Enchants.SlashCmd then
