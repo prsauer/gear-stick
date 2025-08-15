@@ -16,7 +16,9 @@ echo "Gearing2v2.lua" >> GearStick.toc
 echo "Gearing3v3.lua" >> GearStick.toc
 echo "GearingPvE.lua" >> GearStick.toc
 echo "Loadouts.lua" >> GearStick.toc
+echo "Enchants.lua" >> GearStick.toc
 echo "Talents.lua" >> GearStick.toc
+echo "EnchantsUI.lua" >> GearStick.toc
 echo "GearStick.lua" >> GearStick.toc
 
 yarn compile
