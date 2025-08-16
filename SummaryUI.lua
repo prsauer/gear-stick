@@ -109,6 +109,8 @@ local function GetProfileCount(specId, bracket)
     return db[profileCountKey]
 end
 
+
+
 -- Helper function to check if a slot is "healthy"
 local function IsSlotHealthy(slotID, currentSpecID, selectedBracket)
     local itemInfo = GST_ItemUtils.GetSlotItemInfo(slotID)
@@ -233,7 +235,7 @@ local function ShowSummary()
     -- Create the main frame if it doesn't exist
     if not SummaryFrame then
         local frame = CreateFrame("Frame", "SummaryFrame", UIParent, "BackdropTemplate")
-        frame:SetSize(206, 620)
+        frame:SetSize(214, 620)
         frame:SetPoint("CENTER")
         frame:SetFrameStrata("DIALOG")
 
@@ -386,8 +388,30 @@ local function ShowSummary()
         SummaryFrame.hideHealthyCheckbox = checkbox
     end
 
+    -- Create "Show rank instead of %" checkbox if it doesn't exist
+    if not SummaryFrame.showRankCheckbox then
+        local checkbox = CreateFrame("CheckButton", nil, SummaryFrame.controlContainer, "UICheckButtonTemplate")
+        checkbox:SetPoint("TOPLEFT", SummaryFrame.controlContainer, "TOPLEFT", 0, -90)
+        checkbox:SetSize(20, 20)
+        checkbox:SetChecked(false) -- Default to unchecked
+
+        -- Add label
+        local label = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        label:SetPoint("LEFT", checkbox, "RIGHT", 5, 0)
+        label:SetText("Show rank instead of %")
+        label:SetTextColor(1, 1, 1, 1)
+
+        -- Set up click handler to refresh display
+        checkbox:SetScript("OnClick", function()
+            ShowSummary() -- Refresh the display
+        end)
+
+        SummaryFrame.showRankCheckbox = checkbox
+    end
+
     local selectedBracket = UIDropDownMenu_GetSelectedValue(SummaryFrame.bracketDropdown)
     local hideHealthy = SummaryFrame.hideHealthyCheckbox:GetChecked()
+    local showRank = SummaryFrame.showRankCheckbox:GetChecked()
 
     -- Clear existing slot frames
     if SummaryFrame.slotFrames then
@@ -412,12 +436,12 @@ local function ShowSummary()
 
     -- Layout configuration
     local layout = {
-        startY = -123,      -- Starting Y position (8px lower for more space after controls)
+        startY = -142,      -- Starting Y position (adjusted for additional checkbox + 4px margin)
         slotHeight = 48,    -- Height of each slot frame (matches icon size)
         slotSpacing = 8,    -- Spacing between slots (increased for better visual separation)
-        columnWidth = 90,   -- Width of each slot (narrower)
+        columnWidth = 94,   -- Width of each slot (4px wider)
         leftColumnX = 8,    -- X position for left column (8px margin)
-        rightColumnX = 108, -- X position for right column (8px + 90px + 10px gap)
+        rightColumnX = 112, -- X position for right column (8px + 94px + 10px gap)
         rowSpacing = 15     -- Extra spacing between different row types (increased)
     }
 
@@ -457,7 +481,7 @@ local function ShowSummary()
                 -- Horizontal layout for trinkets and weapons (rows 3-4)
                 local slotsPerRow = #visibleSlotsInRow
                 local totalWidth = slotsPerRow * layout.columnWidth + (slotsPerRow - 1) * layout.slotSpacing
-                local startX = (206 - totalWidth) / 2 -- Center horizontally in the 206px wide frame
+                local startX = (214 - totalWidth) / 2 -- Center horizontally in the 214px wide frame
 
                 xPos = startX + (index - 1) * (layout.columnWidth + layout.slotSpacing)
                 yPos = math.min(currentY[1], currentY[2]) - layout.rowSpacing
@@ -561,23 +585,52 @@ local function ShowSummary()
 
 
 
-            -- Create gear percentage text (top-aligned to avoid icon)
+            -- Create gear percentage/rank text (top-aligned to avoid icon)
             if gearPercent then
                 local gearText = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
                 gearText:SetPoint("TOPRIGHT", slotFrame, "TOPRIGHT", -5, -10)
-                gearText:SetText(string.format("%.0f%%", gearPercent))
-                gearText:SetJustifyH("RIGHT")
 
-                -- Color based on popularity
-                if gearPercent >= 50 then
-                    gearText:SetTextColor(0.2, 1, 0.2, 1)   -- Green
-                elseif gearPercent >= 20 then
-                    gearText:SetTextColor(1, 1, 0.2, 1)     -- Yellow
-                elseif gearPercent > 0 then
-                    gearText:SetTextColor(1, 0.6, 0.2, 1)   -- Orange
+                local displayValue
+                local displayColor
+
+                if showRank then
+                    -- Show rank instead of percentage
+                    local gearRank = GST_BracketUtils.GetGearRank(slotID, currentSpecID, selectedBracket, itemID,
+                        itemInfo and itemInfo.statsShort)
+                    if gearRank then
+                        displayValue = string.format("#%d", gearRank)
+                        -- Color based on rank (lower is better)
+                        if gearRank == 1 then
+                            displayColor = { 0.2, 1, 0.2, 1 }   -- Green for #1
+                        elseif gearRank <= 3 then
+                            displayColor = { 1, 1, 0.2, 1 }     -- Yellow for #2-3
+                        elseif gearRank <= 5 then
+                            displayColor = { 1, 0.6, 0.2, 1 }   -- Orange for #4-5
+                        else
+                            displayColor = { 0.8, 0.2, 0.2, 1 } -- Red for #6+
+                        end
+                    else
+                        displayValue = "??"
+                        displayColor = { 0.8, 0.2, 0.2, 1 } -- Red for no data
+                    end
                 else
-                    gearText:SetTextColor(0.8, 0.2, 0.2, 1) -- Red for 0%
+                    -- Show percentage
+                    displayValue = string.format("%.0f%%", gearPercent)
+                    -- Color based on popularity
+                    if gearPercent >= 50 then
+                        displayColor = { 0.2, 1, 0.2, 1 }   -- Green
+                    elseif gearPercent >= 20 then
+                        displayColor = { 1, 1, 0.2, 1 }     -- Yellow
+                    elseif gearPercent > 0 then
+                        displayColor = { 1, 0.6, 0.2, 1 }   -- Orange
+                    else
+                        displayColor = { 0.8, 0.2, 0.2, 1 } -- Red for 0%
+                    end
                 end
+
+                gearText:SetText(displayValue)
+                gearText:SetJustifyH("RIGHT")
+                gearText:SetTextColor(unpack(displayColor))
             end
 
             -- Only show enchant indicators if enchant data exists for this slot
@@ -587,22 +640,56 @@ local function ShowSummary()
                 if enchantPercent then
                     local enchantText = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
                     enchantText:SetPoint("TOPRIGHT", slotFrame, "TOPRIGHT", -5, -30)
-                    enchantText:SetText(string.format("%.0f%%", enchantPercent))
-                    enchantText:SetJustifyH("RIGHT")
 
-                    -- Color based on popularity
-                    if enchantPercent >= 50 then
-                        enchantText:SetTextColor(0.2, 1, 0.2, 1) -- Green
-                    elseif enchantPercent >= 20 then
-                        enchantText:SetTextColor(1, 1, 0.2, 1)   -- Yellow
+                    local displayValue
+                    local displayColor
+
+                    if showRank then
+                        -- Show rank instead of percentage
+                        local enchantRank = GST_BracketUtils.GetEnchantRank(currentSpecID, slotType, selectedBracket,
+                            enchantID)
+                        if enchantRank then
+                            displayValue = string.format("#%d", enchantRank)
+                            -- Color based on rank (lower is better)
+                            if enchantRank == 1 then
+                                displayColor = { 0.2, 1, 0.2, 1 }   -- Green for #1
+                            elseif enchantRank <= 3 then
+                                displayColor = { 1, 1, 0.2, 1 }     -- Yellow for #2-3
+                            elseif enchantRank <= 5 then
+                                displayColor = { 1, 0.6, 0.2, 1 }   -- Orange for #4-5
+                            else
+                                displayColor = { 0.8, 0.2, 0.2, 1 } -- Red for #6+
+                            end
+                        else
+                            displayValue = "??"
+                            displayColor = { 0.8, 0.2, 0.2, 1 } -- Red for no data
+                        end
                     else
-                        enchantText:SetTextColor(1, 0.6, 0.2, 1) -- Orange
+                        -- Show percentage
+                        displayValue = string.format("%.0f%%", enchantPercent)
+                        -- Color based on popularity
+                        if enchantPercent >= 50 then
+                            displayColor = { 0.2, 1, 0.2, 1 } -- Green
+                        elseif enchantPercent >= 20 then
+                            displayColor = { 1, 1, 0.2, 1 }   -- Yellow
+                        else
+                            displayColor = { 1, 0.6, 0.2, 1 } -- Orange
+                        end
                     end
+
+                    enchantText:SetText(displayValue)
+                    enchantText:SetJustifyH("RIGHT")
+                    enchantText:SetTextColor(unpack(displayColor))
                 elseif hasItem then
                     -- Show "Missing Enchant" only if item exists but no enchant AND enchant data exists for this slot
                     local noEnchantText = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
                     noEnchantText:SetPoint("TOPRIGHT", slotFrame, "TOPRIGHT", -5, -30)
-                    noEnchantText:SetText("0%")
+
+                    if showRank then
+                        noEnchantText:SetText("??")
+                    else
+                        noEnchantText:SetText("0%")
+                    end
                     noEnchantText:SetTextColor(0.8, 0.2, 0.2, 1) -- Red
                     noEnchantText:SetJustifyH("RIGHT")
                 end

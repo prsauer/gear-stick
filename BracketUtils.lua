@@ -106,3 +106,58 @@ function GST_BracketUtils.GetAvailableBrackets(currentClassID, currentSpecID)
 
     return availableBrackets
 end
+
+-- Helper function to get gear rank for a specific item
+function GST_BracketUtils.GetGearRank(slotID, currentSpecID, selectedBracket, itemID, statsShort)
+    if not GSTSlotGearDb or not itemID then return nil end
+
+    local slotItems = {}
+    for _, item in ipairs(GSTSlotGearDb) do
+        if item.slotId == slotID and
+            item.specId == currentSpecID and
+            item.bracket == selectedBracket then
+            table.insert(slotItems, item)
+        end
+    end
+
+    -- Sort by rank
+    table.sort(slotItems, function(a, b) return a.rank < b.rank end)
+
+    -- Find matching item
+    for _, item in ipairs(slotItems) do
+        if item.itemId == itemID then
+            local statsMatch = statsShort and item.statsShort and statsShort == item.statsShort
+            if not item.statsShort or item.statsShort == "" or statsMatch then
+                return item.rank
+            end
+        end
+    end
+
+    return nil
+end
+
+-- Helper function to get enchant rank for a specific enchant
+function GST_BracketUtils.GetEnchantRank(currentSpecID, slotType, selectedBracket, enchantID)
+    if not GSTEnchantsDb or not enchantID then return nil end
+
+    local enchants = {}
+    for _, enchant in ipairs(GSTEnchantsDb) do
+        if enchant.specId == currentSpecID and
+            enchant.slotType == slotType and
+            enchant.bracket == selectedBracket then
+            table.insert(enchants, enchant)
+        end
+    end
+
+    -- Sort by rank
+    table.sort(enchants, function(a, b) return a.rank < b.rank end)
+
+    -- Find matching enchant
+    for _, enchant in ipairs(enchants) do
+        if enchant.enchantId == enchantID then
+            return enchant.rank
+        end
+    end
+
+    return nil
+end
