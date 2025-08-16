@@ -1,7 +1,45 @@
 GST_Summary = {}
 
 -- Helper function to get gear popularity for a specific slot and item
-local function GetGearPopularity(specId, slotType, itemID, bracket)
+local function GetGearPopularity(specId, slotType, itemID, bracket, slotID, equippedStatsShort)
+    -- Use the slot-based database for more accurate matching
+    if GSTSlotGearDb and itemID then
+        local bestMatch = nil
+
+        for _, item in ipairs(GSTSlotGearDb) do
+            if item.slotId == slotID and
+                item.specId == specId and
+                item.bracket == bracket and
+                item.itemId == itemID then
+                -- Check if stats match (for items with stat variants)
+                if equippedStatsShort and item.statsShort then
+                    if equippedStatsShort == item.statsShort then
+                        -- Exact stats match
+                        return {
+                            percent = item.percent,
+                            isBis = item.isBis,
+                            bisName = item.itemName
+                        }
+                    end
+                elseif not item.statsShort or item.statsShort == "" then
+                    -- No stats variants, direct match
+                    if not bestMatch or item.percent > bestMatch.percent then
+                        bestMatch = {
+                            percent = item.percent,
+                            isBis = item.isBis,
+                            bisName = item.itemName
+                        }
+                    end
+                end
+            end
+        end
+
+        if bestMatch then
+            return bestMatch
+        end
+    end
+
+    -- Fallback to old database method
     local gearDbs = {
         ["pve"] = usageDbPvE,
         ["2v2"] = usageDb2v2,
@@ -9,13 +47,8 @@ local function GetGearPopularity(specId, slotType, itemID, bracket)
     }
 
     local db = gearDbs[bracket]
-    if not db then
-        print("DEBUG GetGearPopularity: No database for bracket", bracket)
-        return nil
-    end
+    if not db then return nil end
 
-    -- Try to find the gear in the database
-    -- First check if there's a direct itemID match (for BIS items)
     local simpleKey = tostring(itemID)
     if db[simpleKey] then
         return {
@@ -25,28 +58,7 @@ local function GetGearPopularity(specId, slotType, itemID, bracket)
         }
     end
 
-    -- If no direct match, try to find the most popular version with stats
-    -- Look for keys that start with specId + itemID + "-"
-    local keyPrefix = specId .. itemID .. "-"
-    local bestMatch = nil
-    local highestPercent = 0
-    local foundKeys = {}
-
-    for key, data in pairs(db) do
-        if type(key) == "string" and string.find(key, keyPrefix, 1, true) == 1 then
-            table.insert(foundKeys, key .. " (" .. data[1] .. "%)")
-            if data[1] > highestPercent then
-                highestPercent = data[1]
-                bestMatch = {
-                    percent = data[1],
-                    isBis = data[2],
-                    bisName = data[3]
-                }
-            end
-        end
-    end
-
-    return bestMatch
+    return nil
 end
 
 -- Helper function to check if any enchant data exists for a slot
@@ -80,6 +92,21 @@ local function GetEnchantPopularity(specId, slotType, enchantID, bracket)
         end
     end
     return nil
+end
+
+-- Helper function to get profile count for a spec and bracket
+local function GetProfileCount(specId, bracket)
+    local gearDbs = {
+        ["pve"] = usageDbPvE,
+        ["2v2"] = usageDb2v2,
+        ["3v3"] = usageDb3v3
+    }
+
+    local db = gearDbs[bracket]
+    if not db then return nil end
+
+    local profileCountKey = specId .. "_profileCount"
+    return db[profileCountKey]
 end
 
 -- Helper function to check if a slot is "healthy"
@@ -121,7 +148,8 @@ local function IsSlotHealthy(slotID, currentSpecID, selectedBracket)
 
     -- If not the top pick, check the old >50% rule
     if not isTopPick then
-        local gearInfo = GetGearPopularity(currentSpecID, slotType, itemID, selectedBracket)
+        local gearInfo = GetGearPopularity(currentSpecID, slotType, itemID, selectedBracket, slotID,
+            itemInfo and itemInfo.statsShort)
         local gearPercent = gearInfo and gearInfo.percent or 0
 
         if gearPercent <= 50 then
@@ -175,7 +203,7 @@ local function ShowSummary()
     -- Create the main frame if it doesn't exist
     if not SummaryFrame then
         local frame = CreateFrame("Frame", "SummaryFrame", UIParent, "BackdropTemplate")
-        frame:SetSize(400, 580)
+        frame:SetSize(206, 620)
         frame:SetPoint("CENTER")
         frame:SetFrameStrata("DIALOG")
 
@@ -196,10 +224,16 @@ local function ShowSummary()
         frame.title:SetPoint("TOPLEFT", 8, -8)
         frame.title:SetText("Gearstick Summary")
 
+        -- Create control container for dynamic layout
+        local controlContainer = CreateFrame("Frame", nil, frame)
+        controlContainer:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, -10)
+        controlContainer:SetSize(190, 100) -- Dynamic height will be calculated
+        frame.controlContainer = controlContainer
+
         -- Add Enchants button
-        local enchantsButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-        enchantsButton:SetSize(80, 32)
-        enchantsButton:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, -10)
+        local enchantsButton = CreateFrame("Button", nil, controlContainer, "UIPanelButtonTemplate")
+        enchantsButton:SetSize(80, 24)
+        enchantsButton:SetPoint("TOPLEFT", controlContainer, "TOPLEFT", 0, 0)
         enchantsButton:SetText("Enchants")
         enchantsButton:SetScript("OnClick", function()
             if GST_Enchants and GST_Enchants.SlashCmd then
@@ -245,8 +279,9 @@ local function ShowSummary()
 
     -- Create bracket dropdown if it doesn't exist
     if not SummaryFrame.bracketDropdown then
-        local dropdown = CreateFrame("Frame", "GSTSummaryBracketDropdown", SummaryFrame, "UIDropDownMenuTemplate")
-        dropdown:SetPoint("TOPLEFT", SummaryFrame.title, "BOTTOMLEFT", 90, -10)
+        local dropdown = CreateFrame("Frame", "GSTSummaryBracketDropdown", SummaryFrame.controlContainer,
+            "UIDropDownMenuTemplate")
+        dropdown:SetPoint("TOPLEFT", SummaryFrame.controlContainer, "TOPLEFT", 0, -30)
         SummaryFrame.bracketDropdown = dropdown
 
         dropdown.initialize = function(self)
@@ -271,15 +306,15 @@ local function ShowSummary()
         UIDropDownMenu_SetSelectedValue(SummaryFrame.bracketDropdown, "2v2")
         UIDropDownMenu_SetText(SummaryFrame.bracketDropdown, "2V2")
     end
-    UIDropDownMenu_SetWidth(SummaryFrame.bracketDropdown, 80)
+    -- UIDropDownMenu_SetWidth(SummaryFrame.bracketDropdown, 70)
     UIDropDownMenu_JustifyText(SummaryFrame.bracketDropdown, "LEFT")
 
     -- Create "Hide healthy slots" checkbox if it doesn't exist
     if not SummaryFrame.hideHealthyCheckbox then
-        local checkbox = CreateFrame("CheckButton", nil, SummaryFrame, "UICheckButtonTemplate")
-        checkbox:SetPoint("TOPLEFT", SummaryFrame.bracketDropdown, "TOPRIGHT", 20, 0)
+        local checkbox = CreateFrame("CheckButton", nil, SummaryFrame.controlContainer, "UICheckButtonTemplate")
+        checkbox:SetPoint("TOPLEFT", SummaryFrame.controlContainer, "TOPLEFT", 0, -65)
         checkbox:SetSize(20, 20)
-        checkbox:SetChecked(true) -- Default to checked
+        checkbox:SetChecked(false) -- Default to unchecked
 
         -- Add label
         local label = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -321,13 +356,13 @@ local function ShowSummary()
 
     -- Layout configuration
     local layout = {
-        startY = -70,       -- Starting Y position
+        startY = -123,      -- Starting Y position (8px lower for more space after controls)
         slotHeight = 48,    -- Height of each slot frame (matches icon size)
-        slotSpacing = 5,    -- Spacing between slots
+        slotSpacing = 8,    -- Spacing between slots (increased for better visual separation)
         columnWidth = 90,   -- Width of each slot (narrower)
-        leftColumnX = 40,   -- X position for left column
-        rightColumnX = 180, -- X position for right column (adjusted for narrower width)
-        rowSpacing = 10     -- Extra spacing between different row types
+        leftColumnX = 8,    -- X position for left column (8px margin)
+        rightColumnX = 108, -- X position for right column (8px + 90px + 10px gap)
+        rowSpacing = 15     -- Extra spacing between different row types (increased)
     }
 
 
@@ -366,7 +401,7 @@ local function ShowSummary()
                 -- Horizontal layout for trinkets and weapons (rows 3-4)
                 local slotsPerRow = #visibleSlotsInRow
                 local totalWidth = slotsPerRow * layout.columnWidth + (slotsPerRow - 1) * layout.slotSpacing
-                local startX = (400 - totalWidth) / 2 -- Center horizontally in the 400px wide frame
+                local startX = (206 - totalWidth) / 2 -- Center horizontally in the 206px wide frame
 
                 xPos = startX + (index - 1) * (layout.columnWidth + layout.slotSpacing)
                 yPos = math.min(currentY[1], currentY[2]) - layout.rowSpacing
@@ -401,7 +436,8 @@ local function ShowSummary()
             if hasItem then
                 -- Get gear popularity
                 if itemID then
-                    local gearInfo = GetGearPopularity(currentSpecID, slotType, itemID, selectedBracket)
+                    local gearInfo = GetGearPopularity(currentSpecID, slotType, itemID, selectedBracket, slotID,
+                        itemInfo and itemInfo.statsShort)
                     if gearInfo then
                         gearPercent = gearInfo.percent
                     else
@@ -493,7 +529,7 @@ local function ShowSummary()
 
             if hasEnchantData then
                 if enchantPercent then
-                    local enchantText = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+                    local enchantText = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
                     enchantText:SetPoint("TOPRIGHT", slotFrame, "TOPRIGHT", -5, -30)
                     enchantText:SetText(string.format("%.0f%%", enchantPercent))
                     enchantText:SetJustifyH("RIGHT")
@@ -508,7 +544,7 @@ local function ShowSummary()
                     end
                 elseif hasItem then
                     -- Show "Missing Enchant" only if item exists but no enchant AND enchant data exists for this slot
-                    local noEnchantText = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+                    local noEnchantText = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
                     noEnchantText:SetPoint("TOPRIGHT", slotFrame, "TOPRIGHT", -5, -30)
                     noEnchantText:SetText("0%")
                     noEnchantText:SetTextColor(0.8, 0.2, 0.2, 1) -- Red
@@ -630,13 +666,22 @@ local function ShowSummary()
     local newFrameHeight = math.max(contentHeight, 300) -- Minimum height
     SummaryFrame:SetHeight(newFrameHeight)
 
-    -- Add legend
-    if not SummaryFrame.legend then
-        local legend = SummaryFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        legend:SetPoint("BOTTOM", SummaryFrame, "BOTTOM", 0, 8)
-        legend:SetText("G: Gear popularity | E: Enchant popularity")
-        legend:SetTextColor(0.7, 0.7, 0.7, 1)
-        SummaryFrame.legend = legend
+    if not SummaryFrame.profileCount then
+        local profileCount = SummaryFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        profileCount:SetPoint("BOTTOM", SummaryFrame, "BOTTOM", 0, 8)
+        profileCount:SetTextColor(0.7, 0.7, 0.7, 1)
+        SummaryFrame.profileCount = profileCount
+    end
+
+    -- Update profile count text (clear first to prevent overlap)
+    if SummaryFrame.profileCount then
+        SummaryFrame.profileCount:SetText("") -- Clear existing text first
+        local profileCount = GetProfileCount(currentSpecID, selectedBracket)
+        if profileCount then
+            SummaryFrame.profileCount:SetText(string.format("%d profiles considered", profileCount))
+        else
+            SummaryFrame.profileCount:SetText("Profile count unavailable")
+        end
     end
 
     SummaryFrame:Show()
