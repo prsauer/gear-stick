@@ -120,41 +120,71 @@ local function IsSlotHealthy(slotID, currentSpecID, selectedBracket)
     local enchantID = itemInfo.enchantID
     local slotType = itemInfo.slotName
 
-    -- Check if equipped item is the #1 pick in distribution
+    -- Check if equipped item is rank 1 or rank 2 in distribution
     local isTopPick = false
+    local isRank2Pick = false
+    local rank2Percent = 0
+
     if GSTSlotGearDb and itemID then
-        -- Find the top item for this slot/spec/bracket
-        local topItem = nil
+        -- Find the top 2 items for this slot/spec/bracket
+        local topItems = {}
         for _, item in ipairs(GSTSlotGearDb) do
             if item.slotId == slotID and
                 item.specId == currentSpecID and
                 item.bracket == selectedBracket then
-                if not topItem or item.rank < topItem.rank then
-                    topItem = item
+                table.insert(topItems, item)
+            end
+        end
+
+        -- Sort by rank
+        table.sort(topItems, function(a, b) return a.rank < b.rank end)
+
+        -- Check if our equipped item matches rank 1
+        if #topItems >= 1 then
+            local topItem = topItems[1]
+            if topItem.itemId == itemID then
+                -- For items with stats variants, also check if stats match
+                if topItem.statsShort and itemInfo.statsShort then
+                    isTopPick = (topItem.statsShort == itemInfo.statsShort)
+                else
+                    isTopPick = true
                 end
             end
         end
 
-        -- Check if our equipped item matches the top pick
-        if topItem and topItem.itemId == itemID then
-            -- For items with stats variants, also check if stats match
-            if topItem.statsShort and itemInfo.statsShort then
-                isTopPick = (topItem.statsShort == itemInfo.statsShort)
-            else
-                isTopPick = true
+        -- Check if our equipped item matches rank 2
+        if #topItems >= 2 and not isTopPick then
+            local rank2Item = topItems[2]
+            if rank2Item.itemId == itemID then
+                -- For items with stats variants, also check if stats match
+                if rank2Item.statsShort and itemInfo.statsShort then
+                    isRank2Pick = (rank2Item.statsShort == itemInfo.statsShort)
+                    rank2Percent = rank2Item.percent
+                else
+                    isRank2Pick = true
+                    rank2Percent = rank2Item.percent
+                end
             end
         end
     end
 
-    -- If not the top pick, check the old >50% rule
-    if not isTopPick then
+    -- Check if gear meets the rank/usage criteria
+    local gearIsHealthy = false
+    if isTopPick then
+        gearIsHealthy = true
+    elseif isRank2Pick then
+        gearIsHealthy = (rank2Percent >= 30)
+    else
+        -- If not a top pick, check the old >50% rule
         local gearInfo = GetGearPopularity(currentSpecID, slotType, itemID, selectedBracket, slotID,
             itemInfo and itemInfo.statsShort)
         local gearPercent = gearInfo and gearInfo.percent or 0
+        gearIsHealthy = (gearPercent > 50)
+    end
 
-        if gearPercent <= 50 then
-            return false -- Gear not popular enough
-        end
+    -- If gear doesn't meet criteria, slot is unhealthy
+    if not gearIsHealthy then
+        return false
     end
 
     -- Check enchant criteria
