@@ -208,7 +208,7 @@ local function ListEnchants()
         -- Initialize the dropdown
         dropdown.initialize = function(self)
             local info = UIDropDownMenu_CreateInfo()
-            local brackets = { "pve", "2v2", "3v3" }
+            local brackets = { "pve", "2v2", "3v3", "shuffle_evoker_devastation" }
             for _, bracket in ipairs(brackets) do
                 info.text = string.upper(bracket)
                 info.value = bracket
