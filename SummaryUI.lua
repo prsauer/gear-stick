@@ -238,6 +238,7 @@ local function ShowSummary()
         enchantsButton:SetScript("OnClick", function()
             if GST_Enchants and GST_Enchants.SlashCmd then
                 GST_Enchants.SlashCmd()
+                SummaryFrame:Hide() -- Close the summary panel
             end
         end)
 
