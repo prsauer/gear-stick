@@ -67,7 +67,13 @@ function sanitizeItemName(name: string) {
 
 async function writeDbLuaFile(data: Root, dbName: string, fileName: string) {
   let lines = `${dbName} = {\n`;
+
+  // Add profile count metadata for each spec
   data.forEach((specInfo) => {
+    if (specInfo.profilesComparedCount) {
+      lines += `["${specInfo.specId}_profileCount"] = ${specInfo.profilesComparedCount},\n`;
+    }
+
     specInfo?.histoMaps.forEach((histoMap) => {
       if (histoMap.histo[0]) {
         lines += makeTTLine(
