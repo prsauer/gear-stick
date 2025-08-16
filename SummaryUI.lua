@@ -82,6 +82,45 @@ local function GetEnchantPopularity(specId, slotType, enchantID, bracket)
     return nil
 end
 
+-- Helper function to check if a slot is "healthy"
+local function IsSlotHealthy(slotID, currentSpecID, selectedBracket)
+    local itemInfo = GST_ItemUtils.GetSlotItemInfo(slotID)
+    if not itemInfo then
+        return false -- No item = not healthy
+    end
+
+    local itemID = itemInfo.itemID
+    local enchantID = itemInfo.enchantID
+    local slotType = itemInfo.slotName
+
+    -- Check gear popularity (must be >50%)
+    local gearInfo = GetGearPopularity(currentSpecID, slotType, itemID, selectedBracket)
+    local gearPercent = gearInfo and gearInfo.percent or 0
+
+    if gearPercent <= 50 then
+        return false -- Gear not popular enough
+    end
+
+    -- Check enchant criteria
+    local hasEnchantData = slotType and HasEnchantDataForSlot(currentSpecID, slotType, selectedBracket)
+
+    if not hasEnchantData then
+        -- No enchant data exists for this slot, so unenchanted is fine
+        return true
+    end
+
+    if not enchantID then
+        -- Slot has enchant data but no enchant = not healthy
+        return false
+    end
+
+    -- Check enchant popularity (must be >50%)
+    local enchantInfo = GetEnchantPopularity(currentSpecID, slotType, enchantID, selectedBracket)
+    local enchantPercent = enchantInfo and enchantInfo.percent or 0
+
+    return enchantPercent > 50
+end
+
 local function ShowSummary()
     -- Create the main frame if it doesn't exist
     if not SummaryFrame then
@@ -185,7 +224,29 @@ local function ShowSummary()
     UIDropDownMenu_SetWidth(SummaryFrame.bracketDropdown, 80)
     UIDropDownMenu_JustifyText(SummaryFrame.bracketDropdown, "LEFT")
 
+    -- Create "Hide healthy slots" checkbox if it doesn't exist
+    if not SummaryFrame.hideHealthyCheckbox then
+        local checkbox = CreateFrame("CheckButton", nil, SummaryFrame, "UICheckButtonTemplate")
+        checkbox:SetPoint("TOPLEFT", SummaryFrame.bracketDropdown, "TOPRIGHT", 20, 0)
+        checkbox:SetSize(20, 20)
+        checkbox:SetChecked(true) -- Default to checked
+
+        -- Add label
+        local label = checkbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        label:SetPoint("LEFT", checkbox, "RIGHT", 5, 0)
+        label:SetText("Hide healthy slots")
+        label:SetTextColor(1, 1, 1, 1)
+
+        -- Set up click handler to refresh display
+        checkbox:SetScript("OnClick", function()
+            ShowSummary() -- Refresh the display
+        end)
+
+        SummaryFrame.hideHealthyCheckbox = checkbox
+    end
+
     local selectedBracket = UIDropDownMenu_GetSelectedValue(SummaryFrame.bracketDropdown)
+    local hideHealthy = SummaryFrame.hideHealthyCheckbox:GetChecked()
 
     -- Clear existing slot frames
     if SummaryFrame.slotFrames then
@@ -196,241 +257,287 @@ local function ShowSummary()
     end
     SummaryFrame.slotFrames = {}
 
-    -- Define slot positions to mimic character panel (2 columns + trinkets + weapons)
-    local slotPositions = {
+    -- Define slot order and layout configuration
+    local slotOrder = {
         -- Left column: HEAD, NECK, SHOULDER, BACK, CHEST, WRIST
-        [1] = { x = 40, y = -70 },   -- HEAD
-        [2] = { x = 40, y = -125 },  -- NECK
-        [3] = { x = 40, y = -180 },  -- SHOULDER
-        [15] = { x = 40, y = -235 }, -- BACK
-        [5] = { x = 40, y = -290 },  -- CHEST
-        [9] = { x = 40, y = -345 },  -- WRIST
-
+        { 1,  2, 3, 15, 5,  9 },  -- Left column slots
         -- Right column: HANDS, WAIST, LEGS, FEET, RING1, RING2
-        [10] = { x = 220, y = -70 },  -- HANDS
-        [6] = { x = 220, y = -125 },  -- WAIST
-        [7] = { x = 220, y = -180 },  -- LEGS
-        [8] = { x = 220, y = -235 },  -- FEET
-        [11] = { x = 220, y = -290 }, -- FINGER_1
-        [12] = { x = 220, y = -345 }, -- FINGER_2
+        { 10, 6, 7, 8,  11, 12 }, -- Right column slots
+        -- Bottom row: TRINKET_1, TRINKET_2
+        { 13, 14 },               -- Trinkets row
+        -- Weapons row: MAIN_HAND, OFF_HAND
+        { 16, 17 }                -- Weapons row
+    }
 
-        -- Trinkets row (between columns and weapons)
-        [13] = { x = 40, y = -410 },  -- TRINKET_1
-        [14] = { x = 220, y = -410 }, -- TRINKET_2
-
-        -- Weapons below (centered)
-        [16] = { x = 40, y = -475 }, -- MAIN_HAND
-        [17] = { x = 220, y = -475 } -- OFF_HAND
+    -- Layout configuration
+    local layout = {
+        startY = -70,       -- Starting Y position
+        slotHeight = 70,    -- Height of each slot frame
+        slotSpacing = 5,    -- Spacing between slots
+        columnWidth = 120,  -- Width of each slot
+        leftColumnX = 40,   -- X position for left column
+        rightColumnX = 220, -- X position for right column
+        rowSpacing = 10     -- Extra spacing between different row types
     }
 
 
 
     -- Use shared slot mapping from ItemUtils
 
-    -- Create slot frames
-    for slotID, position in pairs(slotPositions) do
-        local slotFrame = CreateFrame("Frame", nil, SummaryFrame, "BackdropTemplate")
-        slotFrame:SetSize(120, 70)
-        slotFrame:SetPoint("TOPLEFT", SummaryFrame, "TOPLEFT", position.x, position.y)
-        slotFrame:SetBackdrop({
-            bgFile = "Interface\\Buttons\\WHITE8X8",
-            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-            tile = false,
-            edgeSize = 2,
-            insets = { left = 2, right = 2, top = 2, bottom = 2 }
-        })
-        slotFrame:SetBackdropColor(0.1, 0.1, 0.1, 0.8)
-        slotFrame:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+    -- Create slot frames with dynamic flow layout
+    local currentY = { layout.startY, layout.startY } -- Track Y position for left and right columns
 
-        -- Get item info for this slot using utility functions
-        local itemInfo = GST_ItemUtils.GetSlotItemInfo(slotID)
-        local hasItem = itemInfo ~= nil
-        local itemLink = itemInfo and itemInfo.link
-        local itemID = itemInfo and itemInfo.itemID
-        local enchantID = itemInfo and itemInfo.enchantID
-        local slotType = itemInfo and itemInfo.slotName
-        local gearPercent, enchantPercent = nil, nil
+    for rowIndex, rowSlots in ipairs(slotOrder) do
+        local visibleSlotsInRow = {}
 
-        if hasItem then
-            -- Get gear popularity
-            if itemID then
-                local gearInfo = GetGearPopularity(currentSpecID, slotType, itemID, selectedBracket)
-                if gearInfo then
-                    gearPercent = gearInfo.percent
-                else
-                    -- Item not found in database = 0% popularity
-                    gearPercent = 0
-                end
-            end
-
-            -- Get enchant popularity
-            if enchantID and slotType then
-                local enchantInfo = GetEnchantPopularity(currentSpecID, slotType, enchantID, selectedBracket)
-                if enchantInfo then
-                    enchantPercent = enchantInfo.percent
-                end
+        -- First pass: determine which slots in this row should be visible
+        for _, slotID in ipairs(rowSlots) do
+            local isHealthy = IsSlotHealthy(slotID, currentSpecID, selectedBracket)
+            if not (hideHealthy and isHealthy) then
+                table.insert(visibleSlotsInRow, slotID)
             end
         end
 
-        -- Create slot label
-        local label = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        label:SetPoint("TOP", slotFrame, "TOP", 0, -2)
-        label:SetText(GST_ItemUtils.SLOT_NAMES[slotID] or "")
-        label:SetTextColor(1, 1, 1, 1)
-        label:SetJustifyH("CENTER")
+        -- Second pass: position the visible slots
+        for index, slotID in ipairs(visibleSlotsInRow) do
+            local slotFrame = CreateFrame("Frame", nil, SummaryFrame, "BackdropTemplate")
+            slotFrame:SetSize(layout.columnWidth, layout.slotHeight)
 
+            -- Calculate position based on row type and visible slot index
+            local xPos, yPos
 
-
-        -- Create gear percentage text
-        if gearPercent then
-            local gearText = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            gearText:SetPoint("CENTER", slotFrame, "CENTER", 0, 5)
-            gearText:SetText(string.format("G:%.0f%%", gearPercent))
-            gearText:SetJustifyH("CENTER")
-
-            -- Color based on popularity
-            if gearPercent >= 50 then
-                gearText:SetTextColor(0.2, 1, 0.2, 1)   -- Green
-            elseif gearPercent >= 20 then
-                gearText:SetTextColor(1, 1, 0.2, 1)     -- Yellow
-            elseif gearPercent > 0 then
-                gearText:SetTextColor(1, 0.6, 0.2, 1)   -- Orange
+            if rowIndex <= 2 then
+                -- Column-based layout for equipment slots (rows 1-2)
+                local columnIndex = ((rowIndex - 1) % 2) + 1
+                xPos = (columnIndex == 1) and layout.leftColumnX or layout.rightColumnX
+                yPos = currentY[columnIndex]
+                currentY[columnIndex] = currentY[columnIndex] - layout.slotHeight - layout.slotSpacing
             else
-                gearText:SetTextColor(0.8, 0.2, 0.2, 1) -- Red for 0%
+                -- Horizontal layout for trinkets and weapons (rows 3-4)
+                local slotsPerRow = #visibleSlotsInRow
+                local totalWidth = slotsPerRow * layout.columnWidth + (slotsPerRow - 1) * layout.slotSpacing
+                local startX = (400 - totalWidth) / 2 -- Center horizontally in the 400px wide frame
+
+                xPos = startX + (index - 1) * (layout.columnWidth + layout.slotSpacing)
+                yPos = math.min(currentY[1], currentY[2]) - layout.rowSpacing
+
+                -- Update both column Y positions for the next row
+                if index == #visibleSlotsInRow then
+                    currentY[1] = yPos - layout.slotHeight - layout.rowSpacing
+                    currentY[2] = yPos - layout.slotHeight - layout.rowSpacing
+                end
             end
-        end
 
-        -- Only show enchant indicators if enchant data exists for this slot
-        local hasEnchantData = slotType and HasEnchantDataForSlot(currentSpecID, slotType, selectedBracket)
+            slotFrame:SetPoint("TOPLEFT", SummaryFrame, "TOPLEFT", xPos, yPos)
+            slotFrame:SetBackdrop({
+                bgFile = "Interface\\Buttons\\WHITE8X8",
+                edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+                tile = false,
+                edgeSize = 2,
+                insets = { left = 2, right = 2, top = 2, bottom = 2 }
+            })
+            slotFrame:SetBackdropColor(0.1, 0.1, 0.1, 0.8)
+            slotFrame:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
 
-        if hasEnchantData then
-            if enchantPercent then
-                local enchantText = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-                enchantText:SetPoint("CENTER", slotFrame, "CENTER", 0, -10)
-                enchantText:SetText(string.format("E:%.0f%%", enchantPercent))
-                enchantText:SetJustifyH("CENTER")
+            -- Get item info for this slot using utility functions
+            local itemInfo = GST_ItemUtils.GetSlotItemInfo(slotID)
+            local hasItem = itemInfo ~= nil
+            local itemLink = itemInfo and itemInfo.link
+            local itemID = itemInfo and itemInfo.itemID
+            local enchantID = itemInfo and itemInfo.enchantID
+            local slotType = itemInfo and itemInfo.slotName
+            local gearPercent, enchantPercent = nil, nil
+
+            if hasItem then
+                -- Get gear popularity
+                if itemID then
+                    local gearInfo = GetGearPopularity(currentSpecID, slotType, itemID, selectedBracket)
+                    if gearInfo then
+                        gearPercent = gearInfo.percent
+                    else
+                        -- Item not found in database = 0% popularity
+                        gearPercent = 0
+                    end
+                end
+
+                -- Get enchant popularity
+                if enchantID and slotType then
+                    local enchantInfo = GetEnchantPopularity(currentSpecID, slotType, enchantID, selectedBracket)
+                    if enchantInfo then
+                        enchantPercent = enchantInfo.percent
+                    end
+                end
+            end
+
+            -- Create slot label
+            local label = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            label:SetPoint("TOP", slotFrame, "TOP", 0, -2)
+            label:SetText(GST_ItemUtils.SLOT_NAMES[slotID] or "")
+            label:SetTextColor(1, 1, 1, 1)
+            label:SetJustifyH("CENTER")
+
+
+
+            -- Create gear percentage text
+            if gearPercent then
+                local gearText = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+                gearText:SetPoint("CENTER", slotFrame, "CENTER", 0, 5)
+                gearText:SetText(string.format("G:%.0f%%", gearPercent))
+                gearText:SetJustifyH("CENTER")
 
                 -- Color based on popularity
-                if enchantPercent >= 50 then
-                    enchantText:SetTextColor(0.2, 1, 0.2, 1) -- Green
-                elseif enchantPercent >= 20 then
-                    enchantText:SetTextColor(1, 1, 0.2, 1)   -- Yellow
+                if gearPercent >= 50 then
+                    gearText:SetTextColor(0.2, 1, 0.2, 1)   -- Green
+                elseif gearPercent >= 20 then
+                    gearText:SetTextColor(1, 1, 0.2, 1)     -- Yellow
+                elseif gearPercent > 0 then
+                    gearText:SetTextColor(1, 0.6, 0.2, 1)   -- Orange
                 else
-                    enchantText:SetTextColor(1, 0.6, 0.2, 1) -- Orange
+                    gearText:SetTextColor(0.8, 0.2, 0.2, 1) -- Red for 0%
                 end
-            elseif hasItem then
-                -- Show "Missing Enchant" only if item exists but no enchant AND enchant data exists for this slot
-                local noEnchantText = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-                noEnchantText:SetPoint("CENTER", slotFrame, "CENTER", 0, -10)
-                noEnchantText:SetText("E: MISSING")
-                noEnchantText:SetTextColor(0.8, 0.2, 0.2, 1) -- Red
-                noEnchantText:SetJustifyH("CENTER")
-            end
-        end
-
-        -- Add tooltip functionality for all slots
-        slotFrame:EnableMouse(true)
-        slotFrame:SetScript("OnEnter", function(self)
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:ClearLines()
-
-            local slotName = GST_ItemUtils.SLOT_NAMES[slotID] or "UNKNOWN"
-            GameTooltip:AddLine(slotName .. " Distribution", 1, 1, 1)
-            GameTooltip:AddLine(" ", 1, 1, 1) -- Spacer
-
-            -- Get fresh item data for tooltip
-            local tooltipItemInfo = GST_ItemUtils.GetSlotItemInfo(slotID)
-            local tooltipHasItem = tooltipItemInfo ~= nil
-            local tooltipItemID = tooltipItemInfo and tooltipItemInfo.itemID
-
-            -- Show gear distribution using new slot-based database
-            if GSTSlotGearDb then
-                GameTooltip:AddLine("Top Gear Choices:", 0.2, 1, 0.2)
-
-                -- Find items for this slot from the new database
-                local slotItems = {}
-                for _, item in ipairs(GSTSlotGearDb) do
-                    if item.slotId == slotID and
-                        item.specId == currentSpecID and
-                        item.bracket == selectedBracket then
-                        table.insert(slotItems, item)
-                    end
-                end
-
-                -- Sort by rank (should already be sorted, but just in case)
-                table.sort(slotItems, function(a, b) return a.rank < b.rank end)
-
-                -- Show top 5 items
-                for i = 1, math.min(5, #slotItems) do
-                    local item = slotItems[i]
-
-                    -- Enhanced matching: compare both item ID and stats
-                    local itemMatches = tooltipItemID and tooltipItemID == item.itemId
-                    local statsMatch = tooltipItemInfo and tooltipItemInfo.statsShort and
-                        tooltipItemInfo.statsShort == item.statsShort
-                    local isEquipped = itemMatches and (not item.statsShort or item.statsShort == "" or statsMatch)
-
-                    local color = isEquipped and "|cFF00FF00" or "|cFFFFFFFF"
-                    local bisText = item.isBis and " (BiS)" or ""
-
-                    local statsDisplay = item.statsShort and item.statsShort ~= "" and (" (" .. item.statsShort .. ")") or
-                        ""
-                    GameTooltip:AddLine(
-                        string.format("%s%.1f%% - %s%s%s", color, item.percent, item.itemName, statsDisplay, bisText), 1,
-                        1, 1)
-                end
-
-                if #slotItems == 0 then
-                    GameTooltip:AddLine("No gear data for this slot", 0.8, 0.8, 0.8)
-                end
-            else
-                GameTooltip:AddLine("Slot gear database not loaded", 0.8, 0.8, 0.8)
             end
 
+            -- Only show enchant indicators if enchant data exists for this slot
+            local hasEnchantData = slotType and HasEnchantDataForSlot(currentSpecID, slotType, selectedBracket)
 
+            if hasEnchantData then
+                if enchantPercent then
+                    local enchantText = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+                    enchantText:SetPoint("CENTER", slotFrame, "CENTER", 0, -10)
+                    enchantText:SetText(string.format("E:%.0f%%", enchantPercent))
+                    enchantText:SetJustifyH("CENTER")
 
-            -- Show enchant distribution
-            local tooltipSlotType = tooltipItemInfo and tooltipItemInfo.slotName
-            local tooltipEnchantID = tooltipItemInfo and tooltipItemInfo.enchantID
-            if tooltipSlotType and GSTEnchantsDb then
-                local enchants = {}
-                for _, enchant in ipairs(GSTEnchantsDb) do
-                    if enchant.specId == currentSpecID and
-                        enchant.slotType == tooltipSlotType and
-                        enchant.bracket == selectedBracket then
-                        table.insert(enchants, enchant)
+                    -- Color based on popularity
+                    if enchantPercent >= 50 then
+                        enchantText:SetTextColor(0.2, 1, 0.2, 1) -- Green
+                    elseif enchantPercent >= 20 then
+                        enchantText:SetTextColor(1, 1, 0.2, 1)   -- Yellow
+                    else
+                        enchantText:SetTextColor(1, 0.6, 0.2, 1) -- Orange
                     end
+                elseif hasItem then
+                    -- Show "Missing Enchant" only if item exists but no enchant AND enchant data exists for this slot
+                    local noEnchantText = slotFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+                    noEnchantText:SetPoint("CENTER", slotFrame, "CENTER", 0, -10)
+                    noEnchantText:SetText("E: MISSING")
+                    noEnchantText:SetTextColor(0.8, 0.2, 0.2, 1) -- Red
+                    noEnchantText:SetJustifyH("CENTER")
                 end
+            end
 
-                -- Only show enchant section if there are enchants to display
-                if #enchants > 0 then
-                    GameTooltip:AddLine(" ", 1, 1, 1) -- Spacer
-                    GameTooltip:AddLine("Top Enchant Choices:", 0.2, 0.8, 1)
+            -- Add tooltip functionality for all slots
+            slotFrame:EnableMouse(true)
+            slotFrame:SetScript("OnEnter", function(self)
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:ClearLines()
 
-                    -- Sort by rank and show top 5
-                    table.sort(enchants, function(a, b) return a.rank < b.rank end)
+                local slotName = GST_ItemUtils.SLOT_NAMES[slotID] or "UNKNOWN"
+                GameTooltip:AddLine(slotName .. " Distribution", 1, 1, 1)
+                GameTooltip:AddLine(" ", 1, 1, 1) -- Spacer
 
-                    local playerEnchantID = tooltipEnchantID
-                    for i = 1, math.min(5, #enchants) do
-                        local ench = enchants[i]
-                        local color = (playerEnchantID and playerEnchantID == ench.enchantId) and "|cFF00FF00" or
-                            "|cFFFFFFFF"
+                -- Get fresh item data for tooltip
+                local tooltipItemInfo = GST_ItemUtils.GetSlotItemInfo(slotID)
+                local tooltipHasItem = tooltipItemInfo ~= nil
+                local tooltipItemID = tooltipItemInfo and tooltipItemInfo.itemID
+
+                -- Show gear distribution using new slot-based database
+                if GSTSlotGearDb then
+                    GameTooltip:AddLine("Top Gear Choices:", 0.2, 1, 0.2)
+
+                    -- Find items for this slot from the new database
+                    local slotItems = {}
+                    for _, item in ipairs(GSTSlotGearDb) do
+                        if item.slotId == slotID and
+                            item.specId == currentSpecID and
+                            item.bracket == selectedBracket then
+                            table.insert(slotItems, item)
+                        end
+                    end
+
+                    -- Sort by rank (should already be sorted, but just in case)
+                    table.sort(slotItems, function(a, b) return a.rank < b.rank end)
+
+                    -- Show top 5 items
+                    for i = 1, math.min(5, #slotItems) do
+                        local item = slotItems[i]
+
+                        -- Enhanced matching: compare both item ID and stats
+                        local itemMatches = tooltipItemID and tooltipItemID == item.itemId
+                        local statsMatch = tooltipItemInfo and tooltipItemInfo.statsShort and
+                            tooltipItemInfo.statsShort == item.statsShort
+                        local isEquipped = itemMatches and (not item.statsShort or item.statsShort == "" or statsMatch)
+
+                        local color = isEquipped and "|cFF00FF00" or "|cFFFFFFFF"
+                        local bisText = item.isBis and " (BiS)" or ""
+
+                        local statsDisplay = item.statsShort and item.statsShort ~= "" and
+                            (" (" .. item.statsShort .. ")") or
+                            ""
                         GameTooltip:AddLine(
-                            string.format("%s#%d (%.1f%%) - %s", color, ench.rank, ench.percent, ench.enchantName), 1, 1,
-                            1)
+                            string.format("%s%.1f%% - %s%s%s", color, item.percent, item.itemName, statsDisplay, bisText),
+                            1,
+                            1, 1)
+                    end
+
+                    if #slotItems == 0 then
+                        GameTooltip:AddLine("No gear data for this slot", 0.8, 0.8, 0.8)
+                    end
+                else
+                    GameTooltip:AddLine("Slot gear database not loaded", 0.8, 0.8, 0.8)
+                end
+
+
+
+                -- Show enchant distribution
+                local tooltipSlotType = tooltipItemInfo and tooltipItemInfo.slotName
+                local tooltipEnchantID = tooltipItemInfo and tooltipItemInfo.enchantID
+                if tooltipSlotType and GSTEnchantsDb then
+                    local enchants = {}
+                    for _, enchant in ipairs(GSTEnchantsDb) do
+                        if enchant.specId == currentSpecID and
+                            enchant.slotType == tooltipSlotType and
+                            enchant.bracket == selectedBracket then
+                            table.insert(enchants, enchant)
+                        end
+                    end
+
+                    -- Only show enchant section if there are enchants to display
+                    if #enchants > 0 then
+                        GameTooltip:AddLine(" ", 1, 1, 1) -- Spacer
+                        GameTooltip:AddLine("Top Enchant Choices:", 0.2, 0.8, 1)
+
+                        -- Sort by rank and show top 5
+                        table.sort(enchants, function(a, b) return a.rank < b.rank end)
+
+                        local playerEnchantID = tooltipEnchantID
+                        for i = 1, math.min(5, #enchants) do
+                            local ench = enchants[i]
+                            local color = (playerEnchantID and playerEnchantID == ench.enchantId) and "|cFF00FF00" or
+                                "|cFFFFFFFF"
+                            GameTooltip:AddLine(
+                                string.format("%s#%d (%.1f%%) - %s", color, ench.rank, ench.percent, ench.enchantName), 1,
+                                1,
+                                1)
+                        end
                     end
                 end
-            end
 
-            GameTooltip:Show()
-        end)
+                GameTooltip:Show()
+            end)
 
-        slotFrame:SetScript("OnLeave", function(self)
-            GameTooltip:Hide()
-        end)
+            slotFrame:SetScript("OnLeave", function(self)
+                GameTooltip:Hide()
+            end)
 
-        table.insert(SummaryFrame.slotFrames, slotFrame)
+            table.insert(SummaryFrame.slotFrames, slotFrame)
+        end
     end
+
+    -- Automatically resize frame to fit content
+    local finalY = math.min(currentY[1], currentY[2])
+    local contentHeight = math.abs(finalY) + 80         -- Add padding for legend and controls
+    local newFrameHeight = math.max(contentHeight, 300) -- Minimum height
+    SummaryFrame:SetHeight(newFrameHeight)
 
     -- Add legend
     if not SummaryFrame.legend then
