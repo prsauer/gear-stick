@@ -12,6 +12,8 @@ echo "## Version: $ADDON_VERSION" >> GearStick.toc
 echo "## SavedVariables: GearStickSettings" >> GearStick.toc
 echo "## X-Curse-Project-ID: 937058" >> GearStick.toc
 echo " " >> GearStick.toc
+echo "BracketNames.lua" >> GearStick.toc
+echo "BracketUtils.lua" >> GearStick.toc
 echo "Gearing2v2.lua" >> GearStick.toc
 echo "Gearing3v3.lua" >> GearStick.toc
 echo "GearingPvE.lua" >> GearStick.toc

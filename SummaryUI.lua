@@ -288,12 +288,37 @@ local function ShowSummary()
         dropdown.initialize = function(self)
             local info = UIDropDownMenu_CreateInfo()
             local brackets = { "pve", "2v2", "3v3" }
+
+            -- Add class-specific shuffle brackets if they exist
+            if GSTBracketNames then
+                local _, _, currentClassID = UnitClass("player")
+                local currentSpec = GetSpecialization()
+                local currentSpecID = currentSpec and select(1, GetSpecializationInfo(currentSpec)) or nil
+
+                if currentClassID and currentSpecID then
+                    local className = GST_BracketUtils.GetClassNameFromID(currentClassID)
+                    local specName = GST_BracketUtils.GetSpecNameFromID(currentSpecID)
+
+                    if className and specName then
+                        local shuffleBracket = "shuffle_" .. className .. "_" .. specName
+                        for _, bracket in ipairs(GSTBracketNames) do
+                            if bracket == shuffleBracket then
+                                table.insert(brackets, bracket)
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+
             for _, bracket in ipairs(brackets) do
-                info.text = string.upper(bracket)
+                -- Display "Solo Shuffle" for shuffle brackets, otherwise use the bracket name
+                local displayText = bracket:match("^shuffle_") and "Solo Shuffle" or string.upper(bracket)
+                info.text = displayText
                 info.value = bracket
                 info.func = function(self)
                     UIDropDownMenu_SetSelectedValue(dropdown, self.value)
-                    UIDropDownMenu_SetText(dropdown, string.upper(self.value))
+                    UIDropDownMenu_SetText(dropdown, displayText)
                     ShowSummary() -- Refresh the display
                 end
                 info.checked = (bracket == UIDropDownMenu_GetSelectedValue(dropdown))
@@ -570,6 +595,7 @@ local function ShowSummary()
 
                 -- Show gear distribution using new slot-based database
                 if GSTSlotGearDb then
+                    GameTooltip:AddLine(" ", 1, 1, 1) -- Spacer
                     GameTooltip:AddLine("Top Gear Choices:", 0.2, 1, 0.2)
 
                     -- Find items for this slot from the new database
@@ -585,6 +611,20 @@ local function ShowSummary()
                     -- Sort by rank (should already be sorted, but just in case)
                     table.sort(slotItems, function(a, b) return a.rank < b.rank end)
 
+                    -- Check if player's equipped item matches any item in the distribution
+                    local playerItemMatchesDistribution = false
+                    if tooltipHasItem and tooltipItemID then
+                        for _, item in ipairs(slotItems) do
+                            local itemMatches = tooltipItemID == item.itemId
+                            local statsMatch = tooltipItemInfo and tooltipItemInfo.statsShort and
+                                item.statsShort and tooltipItemInfo.statsShort == item.statsShort
+                            if itemMatches and (not item.statsShort or item.statsShort == "" or statsMatch) then
+                                playerItemMatchesDistribution = true
+                                break
+                            end
+                        end
+                    end
+
                     -- Show top 5 items
                     for i = 1, math.min(5, #slotItems) do
                         local item = slotItems[i]
@@ -592,7 +632,7 @@ local function ShowSummary()
                         -- Enhanced matching: compare both item ID and stats
                         local itemMatches = tooltipItemID and tooltipItemID == item.itemId
                         local statsMatch = tooltipItemInfo and tooltipItemInfo.statsShort and
-                            tooltipItemInfo.statsShort == item.statsShort
+                            item.statsShort and tooltipItemInfo.statsShort == item.statsShort
                         local isEquipped = itemMatches and (not item.statsShort or item.statsShort == "" or statsMatch)
 
                         local color = isEquipped and "|cFF00FF00" or "|cFFFFFFFF"
@@ -605,6 +645,14 @@ local function ShowSummary()
                             string.format("%s%.1f%% - %s%s%s", color, item.percent, item.itemName, statsDisplay, bisText),
                             1,
                             1, 1)
+                    end
+
+                    -- Show player's equipped item only if it doesn't match any item in the distribution
+                    if tooltipHasItem and not playerItemMatchesDistribution then
+                        GameTooltip:AddLine(" ", 1, 1, 1) -- Spacer
+                        local statsDisplay = tooltipItemInfo.statsShort and tooltipItemInfo.statsShort ~= "" and
+                            (" (" .. tooltipItemInfo.statsShort .. ")") or ""
+                        GameTooltip:AddLine("You: " .. tooltipItemInfo.link .. statsDisplay, 1, 1, 0) -- Yellow color for equipped item
                     end
 
                     if #slotItems == 0 then

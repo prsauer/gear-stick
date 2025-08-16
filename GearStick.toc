@@ -54,6 +54,8 @@ SlotGear.lua
 Loadouts.lua
 Enchants.lua
 ItemUtils.lua
+BracketNames.lua
+BracketUtils.lua
 Talents.lua
 EnchantsUI.lua
 SummaryUI.lua

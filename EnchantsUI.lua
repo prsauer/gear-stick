@@ -1,5 +1,7 @@
 GST_Enchants = {}
 
+
+
 -- Helper function to extract enchant ID from item link
 local function GetEnchantIDFromLink(itemLink)
     if not itemLink then return nil end
@@ -208,13 +210,17 @@ local function ListEnchants()
         -- Initialize the dropdown
         dropdown.initialize = function(self)
             local info = UIDropDownMenu_CreateInfo()
-            local brackets = { "pve", "2v2", "3v3", "shuffle_evoker_devastation" }
-            for _, bracket in ipairs(brackets) do
-                info.text = string.upper(bracket)
+            local availableBrackets = GST_BracketUtils.GetAvailableBrackets(currentClassID,
+                UIDropDownMenu_GetSelectedValue(EnchantListFrame.specDropdown) or currentSpecID)
+
+            for _, bracket in ipairs(availableBrackets) do
+                -- Display "Solo Shuffle" for shuffle brackets, otherwise use the bracket name
+                local displayText = bracket:match("^shuffle_") and "Solo Shuffle" or string.upper(bracket)
+                info.text = displayText
                 info.value = bracket
                 info.func = function(self)
                     UIDropDownMenu_SetSelectedValue(dropdown, self.value)
-                    UIDropDownMenu_SetText(dropdown, string.upper(self.value))
+                    UIDropDownMenu_SetText(dropdown, displayText)
                     ListEnchants() -- Refresh the list
                 end
                 info.checked = (bracket == UIDropDownMenu_GetSelectedValue(dropdown))
