@@ -120,41 +120,71 @@ local function IsSlotHealthy(slotID, currentSpecID, selectedBracket)
     local enchantID = itemInfo.enchantID
     local slotType = itemInfo.slotName
 
-    -- Check if equipped item is the #1 pick in distribution
+    -- Check if equipped item is rank 1 or rank 2 in distribution
     local isTopPick = false
+    local isRank2Pick = false
+    local rank2Percent = 0
+
     if GSTSlotGearDb and itemID then
-        -- Find the top item for this slot/spec/bracket
-        local topItem = nil
+        -- Find the top 2 items for this slot/spec/bracket
+        local topItems = {}
         for _, item in ipairs(GSTSlotGearDb) do
             if item.slotId == slotID and
                 item.specId == currentSpecID and
                 item.bracket == selectedBracket then
-                if not topItem or item.rank < topItem.rank then
-                    topItem = item
+                table.insert(topItems, item)
+            end
+        end
+
+        -- Sort by rank
+        table.sort(topItems, function(a, b) return a.rank < b.rank end)
+
+        -- Check if our equipped item matches rank 1
+        if #topItems >= 1 then
+            local topItem = topItems[1]
+            if topItem.itemId == itemID then
+                -- For items with stats variants, also check if stats match
+                if topItem.statsShort and itemInfo.statsShort then
+                    isTopPick = (topItem.statsShort == itemInfo.statsShort)
+                else
+                    isTopPick = true
                 end
             end
         end
 
-        -- Check if our equipped item matches the top pick
-        if topItem and topItem.itemId == itemID then
-            -- For items with stats variants, also check if stats match
-            if topItem.statsShort and itemInfo.statsShort then
-                isTopPick = (topItem.statsShort == itemInfo.statsShort)
-            else
-                isTopPick = true
+        -- Check if our equipped item matches rank 2
+        if #topItems >= 2 and not isTopPick then
+            local rank2Item = topItems[2]
+            if rank2Item.itemId == itemID then
+                -- For items with stats variants, also check if stats match
+                if rank2Item.statsShort and itemInfo.statsShort then
+                    isRank2Pick = (rank2Item.statsShort == itemInfo.statsShort)
+                    rank2Percent = rank2Item.percent
+                else
+                    isRank2Pick = true
+                    rank2Percent = rank2Item.percent
+                end
             end
         end
     end
 
-    -- If not the top pick, check the old >50% rule
-    if not isTopPick then
+    -- Check if gear meets the rank/usage criteria
+    local gearIsHealthy = false
+    if isTopPick then
+        gearIsHealthy = true
+    elseif isRank2Pick then
+        gearIsHealthy = (rank2Percent >= 30)
+    else
+        -- If not a top pick, check the old >50% rule
         local gearInfo = GetGearPopularity(currentSpecID, slotType, itemID, selectedBracket, slotID,
             itemInfo and itemInfo.statsShort)
         local gearPercent = gearInfo and gearInfo.percent or 0
+        gearIsHealthy = (gearPercent > 50)
+    end
 
-        if gearPercent <= 50 then
-            return false -- Gear not popular enough
-        end
+    -- If gear doesn't meet criteria, slot is unhealthy
+    if not gearIsHealthy then
+        return false
     end
 
     -- Check enchant criteria
@@ -288,12 +318,37 @@ local function ShowSummary()
         dropdown.initialize = function(self)
             local info = UIDropDownMenu_CreateInfo()
             local brackets = { "pve", "2v2", "3v3" }
+
+            -- Add class-specific shuffle brackets if they exist
+            if GSTBracketNames then
+                local _, _, currentClassID = UnitClass("player")
+                local currentSpec = GetSpecialization()
+                local currentSpecID = currentSpec and select(1, GetSpecializationInfo(currentSpec)) or nil
+
+                if currentClassID and currentSpecID then
+                    local className = GST_BracketUtils.GetClassNameFromID(currentClassID)
+                    local specName = GST_BracketUtils.GetSpecNameFromID(currentSpecID)
+
+                    if className and specName then
+                        local shuffleBracket = "shuffle_" .. className .. "_" .. specName
+                        for _, bracket in ipairs(GSTBracketNames) do
+                            if bracket == shuffleBracket then
+                                table.insert(brackets, bracket)
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+
             for _, bracket in ipairs(brackets) do
-                info.text = string.upper(bracket)
+                -- Display "Solo Shuffle" for shuffle brackets, otherwise use the bracket name
+                local displayText = bracket:match("^shuffle_") and "Solo Shuffle" or string.upper(bracket)
+                info.text = displayText
                 info.value = bracket
                 info.func = function(self)
                     UIDropDownMenu_SetSelectedValue(dropdown, self.value)
-                    UIDropDownMenu_SetText(dropdown, string.upper(self.value))
+                    UIDropDownMenu_SetText(dropdown, displayText)
                     ShowSummary() -- Refresh the display
                 end
                 info.checked = (bracket == UIDropDownMenu_GetSelectedValue(dropdown))
@@ -570,6 +625,7 @@ local function ShowSummary()
 
                 -- Show gear distribution using new slot-based database
                 if GSTSlotGearDb then
+                    GameTooltip:AddLine(" ", 1, 1, 1) -- Spacer
                     GameTooltip:AddLine("Top Gear Choices:", 0.2, 1, 0.2)
 
                     -- Find items for this slot from the new database
@@ -585,6 +641,20 @@ local function ShowSummary()
                     -- Sort by rank (should already be sorted, but just in case)
                     table.sort(slotItems, function(a, b) return a.rank < b.rank end)
 
+                    -- Check if player's equipped item matches any item in the distribution
+                    local playerItemMatchesDistribution = false
+                    if tooltipHasItem and tooltipItemID then
+                        for _, item in ipairs(slotItems) do
+                            local itemMatches = tooltipItemID == item.itemId
+                            local statsMatch = tooltipItemInfo and tooltipItemInfo.statsShort and
+                                item.statsShort and tooltipItemInfo.statsShort == item.statsShort
+                            if itemMatches and (not item.statsShort or item.statsShort == "" or statsMatch) then
+                                playerItemMatchesDistribution = true
+                                break
+                            end
+                        end
+                    end
+
                     -- Show top 5 items
                     for i = 1, math.min(5, #slotItems) do
                         local item = slotItems[i]
@@ -592,7 +662,7 @@ local function ShowSummary()
                         -- Enhanced matching: compare both item ID and stats
                         local itemMatches = tooltipItemID and tooltipItemID == item.itemId
                         local statsMatch = tooltipItemInfo and tooltipItemInfo.statsShort and
-                            tooltipItemInfo.statsShort == item.statsShort
+                            item.statsShort and tooltipItemInfo.statsShort == item.statsShort
                         local isEquipped = itemMatches and (not item.statsShort or item.statsShort == "" or statsMatch)
 
                         local color = isEquipped and "|cFF00FF00" or "|cFFFFFFFF"
@@ -605,6 +675,14 @@ local function ShowSummary()
                             string.format("%s%.1f%% - %s%s%s", color, item.percent, item.itemName, statsDisplay, bisText),
                             1,
                             1, 1)
+                    end
+
+                    -- Show player's equipped item only if it doesn't match any item in the distribution
+                    if tooltipHasItem and not playerItemMatchesDistribution then
+                        GameTooltip:AddLine(" ", 1, 1, 1) -- Spacer
+                        local statsDisplay = tooltipItemInfo.statsShort and tooltipItemInfo.statsShort ~= "" and
+                            (" (" .. tooltipItemInfo.statsShort .. ")") or ""
+                        GameTooltip:AddLine("You: " .. tooltipItemInfo.link .. statsDisplay, 1, 1, 0) -- Yellow color for equipped item
                     end
 
                     if #slotItems == 0 then

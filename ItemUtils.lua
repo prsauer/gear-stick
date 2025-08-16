@@ -74,33 +74,41 @@ end
 -- Extract secondary stats from item link tooltip
 function GST_ItemUtils.GetItemStatsShort(itemLink)
     if not itemLink then return "" end
-    
+
     -- Create a temporary tooltip to read item stats
     local tooltip = CreateFrame("GameTooltip", "GST_TempTooltip", nil, "GameTooltipTemplate")
     tooltip:SetOwner(UIParent, "ANCHOR_NONE")
     tooltip:SetHyperlink(itemLink)
-    
+
     local stats = {}
-    
+    local seenStats = {} -- Track which stats we've already seen
+
     -- Parse tooltip for secondary stats
     for i = 1, tooltip:NumLines() do
         local line = _G[tooltip:GetName() .. "TextLeft" .. i]
         if line then
             local text = line:GetText()
             if text then
+                local statName = nil
                 if text:find("%+.*Critical Strike") then
-                    table.insert(stats, "Crit")
+                    statName = "Crit"
                 elseif text:find("%+.*Versatility") then
-                    table.insert(stats, "Vers")
+                    statName = "Vers"
                 elseif text:find("%+.*Haste") then
-                    table.insert(stats, "Haste")
+                    statName = "Haste"
                 elseif text:find("%+.*Mastery") then
-                    table.insert(stats, "Mast")
+                    statName = "Mast"
+                end
+
+                -- Only add the stat if we haven't seen it before
+                if statName and not seenStats[statName] then
+                    table.insert(stats, statName)
+                    seenStats[statName] = true
                 end
             end
         end
     end
-    
+
     tooltip:Hide()
     return table.concat(stats, "/")
 end
@@ -110,9 +118,9 @@ function GST_ItemUtils.GetSlotItemInfo(slotID)
     local itemLink = GetInventoryItemLink("player", slotID)
     if not itemLink then return nil end
 
-    -- Get stats from item tooltip  
+    -- Get stats from item tooltip
     local statsShort = GST_ItemUtils.GetItemStatsShort(itemLink)
-    
+
     return {
         link = itemLink,
         itemID = GST_ItemUtils.GetItemIDFromLink(itemLink),

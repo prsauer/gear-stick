@@ -7,3 +7,4 @@ node_modules
 build.local.sh
 .vscode
 ai_mocks
+log.txt

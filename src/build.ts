@@ -5,6 +5,89 @@ import { closeSync, openSync, writeFileSync } from "fs";
 import { join, resolve } from "path";
 import { SpecializationsApi } from "./specTypes";
 
+export type ShuffleLeaderBoardName =
+  | "shuffle-warrior-fury"
+  | "shuffle-demonhunter-vengeance"
+  | "shuffle-monk-brewmaster"
+  | "shuffle-paladin-protection"
+  | "shuffle-shaman-restoration"
+  | "shuffle-evoker-devastation"
+  | "shuffle-evoker-augmentation"
+  | "shuffle-monk-mistweaver"
+  | "shuffle-deathknight-frost"
+  | "shuffle-warlock-affliction"
+  | "shuffle-paladin-holy"
+  | "shuffle-warlock-demonology"
+  | "shuffle-priest-discipline"
+  | "shuffle-druid-guardian"
+  | "shuffle-hunter-survival"
+  | "shuffle-demonhunter-havoc"
+  | "shuffle-warlock-destruction"
+  | "shuffle-monk-windwalker"
+  | "shuffle-warrior-arms"
+  | "shuffle-mage-frost"
+  | "shuffle-priest-holy"
+  | "shuffle-deathknight-blood"
+  | "shuffle-mage-fire"
+  | "shuffle-rogue-subtlety"
+  | "shuffle-shaman-enhancement"
+  | "shuffle-druid-balance"
+  | "shuffle-hunter-beastmastery"
+  | "shuffle-paladin-retribution"
+  | "shuffle-hunter-marksmanship"
+  | "shuffle-rogue-outlaw"
+  | "shuffle-priest-shadow"
+  | "shuffle-evoker-preservation"
+  | "shuffle-rogue-assassination"
+  | "shuffle-deathknight-unholy"
+  | "shuffle-druid-feral"
+  | "shuffle-druid-restoration"
+  | "shuffle-shaman-elemental"
+  | "shuffle-mage-arcane"
+  | "shuffle-warrior-protection";
+
+export const shuffleSpecs: string[] = [
+  "shuffle-warrior-fury",
+  "shuffle-demonhunter-vengeance",
+  "shuffle-monk-brewmaster",
+  "shuffle-paladin-protection",
+  "shuffle-shaman-restoration",
+  "shuffle-evoker-devastation",
+  "shuffle-evoker-augmentation",
+  "shuffle-monk-mistweaver",
+  "shuffle-deathknight-frost",
+  "shuffle-warlock-affliction",
+  "shuffle-paladin-holy",
+  "shuffle-warlock-demonology",
+  "shuffle-priest-discipline",
+  "shuffle-druid-guardian",
+  "shuffle-hunter-survival",
+  "shuffle-demonhunter-havoc",
+  "shuffle-warlock-destruction",
+  "shuffle-monk-windwalker",
+  "shuffle-warrior-arms",
+  "shuffle-mage-frost",
+  "shuffle-priest-holy",
+  "shuffle-deathknight-blood",
+  "shuffle-mage-fire",
+  "shuffle-rogue-subtlety",
+  "shuffle-shaman-enhancement",
+  "shuffle-druid-balance",
+  "shuffle-hunter-beastmastery",
+  "shuffle-paladin-retribution",
+  "shuffle-hunter-marksmanship",
+  "shuffle-rogue-outlaw",
+  "shuffle-priest-shadow",
+  "shuffle-evoker-preservation",
+  "shuffle-rogue-assassination",
+  "shuffle-deathknight-unholy",
+  "shuffle-druid-feral",
+  "shuffle-druid-restoration",
+  "shuffle-shaman-elemental",
+  "shuffle-mage-arcane",
+  "shuffle-warrior-protection",
+];
+
 const outputFolder = resolve("./");
 async function fetchHistoBlob(name: string) {
   const res = await fetch(process.env.STORAGE_URL + name);
@@ -482,23 +565,54 @@ async function main() {
   const json3v3 = await fetchHistoBlob(data3v3);
   await writeDbLuaFile(json3v3, "usageDb3v3", "Gearing3v3.lua");
 
-  await compileTalents(
-    [
-      {
-        bracket: "pve",
-        data: pveJson,
-      },
-      {
-        bracket: "2v2",
-        data: json2v2,
-      },
-      {
-        bracket: "3v3",
-        data: json3v3,
-      },
-    ],
-    "Loadouts.lua"
-  );
+  const shuffleData: Record<string, Root> = {};
+  // do for all 40 shuffle specs:
+  const slicedSpecs = shuffleSpecs; //.slice(0, 1); for debugging
+  const slicedSpecNames = slicedSpecs.map((s) => s.replaceAll("-", "_"));
+  for (const spec of slicedSpecs) {
+    console.log(`Fetch: ${spec}`);
+    const specData = await fetchHistoBlob(`composed_${spec}_LATEST.json`);
+    const specName = spec.replaceAll("-", "_");
+    shuffleData[specName] = specData;
+    await writeDbLuaFile(
+      specData,
+      `usageDb${specName}`,
+      `Gearing${specName}.lua`
+    );
+  }
+
+  // Write BracketNames.lua:
+  const bracketNames = ["pve", "2v2", "3v3", ...slicedSpecNames];
+  const fout = openSync(join(outputFolder, "BracketNames.lua"), "w");
+  writeFileSync(fout, `GSTBracketNames = {\n`);
+  for (const bracket of bracketNames) {
+    writeFileSync(fout, `  "${bracket}",\n`);
+  }
+  writeFileSync(fout, `};\n`);
+  closeSync(fout);
+
+  // Talents are FUBAR
+  // await compileTalents(
+  //   [
+  //     {
+  //       bracket: "pve",
+  //       data: pveJson,
+  //     },
+  //     {
+  //       bracket: "2v2",
+  //       data: json2v2,
+  //     },
+  //     {
+  //       bracket: "3v3",
+  //       data: json3v3,
+  //     },
+  //     ...slicedSpecNames.map((spec) => ({
+  //       bracket: spec,
+  //       data: shuffleData[spec],
+  //     })),
+  //   ],
+  //   "Loadouts.lua"
+  // );
 
   await compileEnchants(
     [
@@ -514,6 +628,10 @@ async function main() {
         bracket: "3v3",
         data: json3v3,
       },
+      ...slicedSpecNames.map((spec) => ({
+        bracket: spec,
+        data: shuffleData[spec],
+      })),
     ],
     "Enchants.lua"
   );
@@ -532,6 +650,10 @@ async function main() {
         bracket: "3v3",
         data: json3v3,
       },
+      ...slicedSpecNames.map((spec) => ({
+        bracket: spec,
+        data: shuffleData[spec],
+      })),
     ],
     "SlotGear.lua"
   );
