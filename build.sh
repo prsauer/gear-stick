@@ -14,9 +14,6 @@ echo "## X-Curse-Project-ID: 937058" >> GearStick.toc
 echo " " >> GearStick.toc
 echo "BracketNames.lua" >> GearStick.toc
 echo "BracketUtils.lua" >> GearStick.toc
-echo "Gearing2v2.lua" >> GearStick.toc
-echo "Gearing3v3.lua" >> GearStick.toc
-echo "GearingPvE.lua" >> GearStick.toc
 for file in $(find . -name "Gearing*.lua" -o -name "shuffle-*.lua"); do
     echo "${file#./}" >> GearStick.toc
 done
