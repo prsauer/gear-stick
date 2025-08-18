@@ -1,15 +1,12 @@
 ## Interface: 110200
 ## Title: GearStick
 ## Author: Armsperson
-## Version: 2025.08.17.05
+## Version: 2025.08.18.05
 ## SavedVariables: GearStickSettings
 ## X-Curse-Project-ID: 937058
  
 BracketNames.lua
 BracketUtils.lua
-Gearing2v2.lua
-Gearing3v3.lua
-GearingPvE.lua
 Gearingshuffle_monk_mistweaver.lua
 Gearingshuffle_druid_guardian.lua
 Gearingshuffle_demonhunter_vengeance.lua
