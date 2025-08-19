@@ -512,3 +512,9 @@ end
 function GST_Enchants.SlashCmd(arg1)
     ListEnchants()
 end
+
+function GST_Enchants.RefreshIfVisible()
+    if EnchantListFrame and EnchantListFrame:IsShown() then
+        ListEnchants()
+    end
+end

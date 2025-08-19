@@ -112,7 +112,7 @@ end
 
 
 -- Helper function to check if a slot is "healthy"
-local function IsSlotHealthy(slotID, currentSpecID, selectedBracket)
+local function IsSlotHealthy(slotID, specID, selectedBracket)
     local itemInfo = GST_ItemUtils.GetSlotItemInfo(slotID)
     if not itemInfo then
         return false -- No item = not healthy
@@ -132,7 +132,7 @@ local function IsSlotHealthy(slotID, currentSpecID, selectedBracket)
         local topItems = {}
         for _, item in ipairs(GSTSlotGearDb) do
             if item.slotId == slotID and
-                item.specId == currentSpecID and
+                item.specId == specID and
                 item.bracket == selectedBracket then
                 table.insert(topItems, item)
             end
@@ -178,7 +178,7 @@ local function IsSlotHealthy(slotID, currentSpecID, selectedBracket)
         gearIsHealthy = (rank2Percent >= 30)
     else
         -- If not a top pick, check the old >50% rule
-        local gearInfo = GetGearPopularity(currentSpecID, slotType, itemID, selectedBracket, slotID,
+        local gearInfo = GetGearPopularity(specID, slotType, itemID, selectedBracket, slotID,
             itemInfo and itemInfo.statsShort)
         local gearPercent = gearInfo and gearInfo.percent or 0
         gearIsHealthy = (gearPercent > 50)
@@ -190,7 +190,7 @@ local function IsSlotHealthy(slotID, currentSpecID, selectedBracket)
     end
 
     -- Check enchant criteria
-    local hasEnchantData = slotType and HasEnchantDataForSlot(currentSpecID, slotType, selectedBracket)
+    local hasEnchantData = slotType and HasEnchantDataForSlot(specID, slotType, selectedBracket)
 
     if not hasEnchantData then
         -- No enchant data exists for this slot, so unenchanted is fine
@@ -208,7 +208,7 @@ local function IsSlotHealthy(slotID, currentSpecID, selectedBracket)
         -- Find the top enchant for this slot/spec/bracket
         local topEnchant = nil
         for _, enchant in ipairs(GSTEnchantsDb) do
-            if enchant.specId == currentSpecID and
+            if enchant.specId == specID and
                 enchant.slotType == slotType and
                 enchant.bracket == selectedBracket then
                 if not topEnchant or enchant.rank < topEnchant.rank then
@@ -223,7 +223,7 @@ local function IsSlotHealthy(slotID, currentSpecID, selectedBracket)
     end
 
     if not isTopEnchant then
-        local enchantInfo = GetEnchantPopularity(currentSpecID, slotType, enchantID, selectedBracket)
+        local enchantInfo = GetEnchantPopularity(specID, slotType, enchantID, selectedBracket)
         local enchantPercent = enchantInfo and enchantInfo.percent or 0
         return enchantPercent > 50
     end
@@ -259,7 +259,7 @@ local function ShowSummary()
         -- Create control container for dynamic layout
         local controlContainer = CreateFrame("Frame", nil, frame)
         controlContainer:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, -10)
-        controlContainer:SetSize(190, 100) -- Dynamic height will be calculated
+        controlContainer:SetSize(190, 130) -- Increased height for spec dropdown
         frame.controlContainer = controlContainer
 
         -- Add Enchants button
@@ -310,11 +310,67 @@ local function ShowSummary()
         return
     end
 
+    -- Create spec dropdown if it doesn't exist
+    if not SummaryFrame.specDropdown then
+        local dropdown = CreateFrame("Frame", "GSTSummarySpecDropdown", SummaryFrame.controlContainer,
+            "UIDropDownMenuTemplate")
+        dropdown:SetPoint("TOPLEFT", SummaryFrame.controlContainer, "TOPLEFT", 0, -30)
+        SummaryFrame.specDropdown = dropdown
+
+        dropdown.initialize = function(self)
+            local info = UIDropDownMenu_CreateInfo()
+            local specs = {}
+
+            -- Get all specs for current class
+            for i = 1, GetNumSpecializationsForClassID(currentClassID) do
+                local specID, specName = GetSpecializationInfoForClassID(currentClassID, i)
+                if specID and specName then
+                    table.insert(specs, { id = specID, name = specName })
+                end
+            end
+
+            for _, spec in ipairs(specs) do
+                info.text = spec.name
+                info.value = spec.id
+                info.func = function(self)
+                    UIDropDownMenu_SetSelectedValue(dropdown, self.value)
+                    UIDropDownMenu_SetText(dropdown, self.text)
+                    ShowSummary() -- Refresh the display
+                end
+                info.checked = (spec.id == UIDropDownMenu_GetSelectedValue(dropdown))
+                UIDropDownMenu_AddButton(info)
+            end
+        end
+    end
+
+    -- Set default spec if not set (use current spec)
+    if not UIDropDownMenu_GetSelectedValue(SummaryFrame.specDropdown) then
+        UIDropDownMenu_SetSelectedValue(SummaryFrame.specDropdown, currentSpecID)
+        local _, specName = GetSpecializationInfoForClassID(currentClassID, currentSpec)
+        UIDropDownMenu_SetText(SummaryFrame.specDropdown, specName)
+    else
+        -- Ensure the text is set for the currently selected value
+        local selectedValue = UIDropDownMenu_GetSelectedValue(SummaryFrame.specDropdown)
+        if selectedValue then
+            for i = 1, GetNumSpecializationsForClassID(currentClassID) do
+                local specID, specName = GetSpecializationInfoForClassID(currentClassID, i)
+                if specID == selectedValue then
+                    UIDropDownMenu_SetText(SummaryFrame.specDropdown, specName)
+                    break
+                end
+            end
+        end
+    end
+    UIDropDownMenu_JustifyText(SummaryFrame.specDropdown, "LEFT")
+
+    -- Get selected spec ID
+    local selectedSpecID = UIDropDownMenu_GetSelectedValue(SummaryFrame.specDropdown)
+
     -- Create bracket dropdown if it doesn't exist
     if not SummaryFrame.bracketDropdown then
         local dropdown = CreateFrame("Frame", "GSTSummaryBracketDropdown", SummaryFrame.controlContainer,
             "UIDropDownMenuTemplate")
-        dropdown:SetPoint("TOPLEFT", SummaryFrame.controlContainer, "TOPLEFT", 0, -30)
+        dropdown:SetPoint("TOPLEFT", SummaryFrame.controlContainer, "TOPLEFT", 0, -60)
         SummaryFrame.bracketDropdown = dropdown
 
         dropdown.initialize = function(self)
@@ -324,12 +380,11 @@ local function ShowSummary()
             -- Add class-specific shuffle brackets if they exist
             if GSTBracketNames then
                 local _, _, currentClassID = UnitClass("player")
-                local currentSpec = GetSpecialization()
-                local currentSpecID = currentSpec and select(1, GetSpecializationInfo(currentSpec)) or nil
+                local selectedSpecID = UIDropDownMenu_GetSelectedValue(SummaryFrame.specDropdown)
 
-                if currentClassID and currentSpecID then
+                if currentClassID and selectedSpecID then
                     local className = GST_BracketUtils.GetClassNameFromID(currentClassID)
-                    local specName = GST_BracketUtils.GetSpecNameFromID(currentSpecID)
+                    local specName = GST_BracketUtils.GetSpecNameFromID(selectedSpecID)
 
                     if className and specName then
                         local shuffleBracket = "shuffle_" .. className .. "_" .. specName
@@ -370,7 +425,7 @@ local function ShowSummary()
     -- Create "Hide healthy slots" checkbox if it doesn't exist
     if not SummaryFrame.hideHealthyCheckbox then
         local checkbox = CreateFrame("CheckButton", nil, SummaryFrame.controlContainer, "UICheckButtonTemplate")
-        checkbox:SetPoint("TOPLEFT", SummaryFrame.controlContainer, "TOPLEFT", 0, -65)
+        checkbox:SetPoint("TOPLEFT", SummaryFrame.controlContainer, "TOPLEFT", 0, -95)
         checkbox:SetSize(20, 20)
         checkbox:SetChecked(false) -- Default to unchecked
 
@@ -391,7 +446,7 @@ local function ShowSummary()
     -- Create "Show rank instead of %" checkbox if it doesn't exist
     if not SummaryFrame.showRankCheckbox then
         local checkbox = CreateFrame("CheckButton", nil, SummaryFrame.controlContainer, "UICheckButtonTemplate")
-        checkbox:SetPoint("TOPLEFT", SummaryFrame.controlContainer, "TOPLEFT", 0, -90)
+        checkbox:SetPoint("TOPLEFT", SummaryFrame.controlContainer, "TOPLEFT", 0, -120)
         checkbox:SetSize(20, 20)
         checkbox:SetChecked(false) -- Default to unchecked
 
@@ -436,7 +491,7 @@ local function ShowSummary()
 
     -- Layout configuration
     local layout = {
-        startY = -142,      -- Starting Y position (adjusted for additional checkbox + 4px margin)
+        startY = -172,      -- Starting Y position (adjusted for spec dropdown + additional checkbox + 4px margin)
         slotHeight = 48,    -- Height of each slot frame (matches icon size)
         slotSpacing = 8,    -- Spacing between slots (increased for better visual separation)
         columnWidth = 94,   -- Width of each slot (4px wider)
@@ -457,7 +512,7 @@ local function ShowSummary()
 
         -- First pass: determine which slots in this row should be visible
         for _, slotID in ipairs(rowSlots) do
-            local isHealthy = IsSlotHealthy(slotID, currentSpecID, selectedBracket)
+            local isHealthy = IsSlotHealthy(slotID, selectedSpecID, selectedBracket)
             if not (hideHealthy and isHealthy) then
                 table.insert(visibleSlotsInRow, slotID)
             end
@@ -516,7 +571,7 @@ local function ShowSummary()
             if hasItem then
                 -- Get gear popularity
                 if itemID then
-                    local gearInfo = GetGearPopularity(currentSpecID, slotType, itemID, selectedBracket, slotID,
+                    local gearInfo = GetGearPopularity(selectedSpecID, slotType, itemID, selectedBracket, slotID,
                         itemInfo and itemInfo.statsShort)
                     if gearInfo then
                         gearPercent = gearInfo.percent
@@ -528,7 +583,7 @@ local function ShowSummary()
 
                 -- Get enchant popularity
                 if enchantID and slotType then
-                    local enchantInfo = GetEnchantPopularity(currentSpecID, slotType, enchantID, selectedBracket)
+                    local enchantInfo = GetEnchantPopularity(selectedSpecID, slotType, enchantID, selectedBracket)
                     if enchantInfo then
                         enchantPercent = enchantInfo.percent
                     end
@@ -595,7 +650,7 @@ local function ShowSummary()
 
                 if showRank then
                     -- Show rank instead of percentage
-                    local gearRank = GST_BracketUtils.GetGearRank(slotID, currentSpecID, selectedBracket, itemID,
+                    local gearRank = GST_BracketUtils.GetGearRank(slotID, selectedSpecID, selectedBracket, itemID,
                         itemInfo and itemInfo.statsShort)
                     if gearRank then
                         displayValue = string.format("#%d", gearRank)
@@ -634,7 +689,7 @@ local function ShowSummary()
             end
 
             -- Only show enchant indicators if enchant data exists for this slot
-            local hasEnchantData = slotType and HasEnchantDataForSlot(currentSpecID, slotType, selectedBracket)
+            local hasEnchantData = slotType and HasEnchantDataForSlot(selectedSpecID, slotType, selectedBracket)
 
             if hasEnchantData then
                 if enchantPercent then
@@ -646,7 +701,7 @@ local function ShowSummary()
 
                     if showRank then
                         -- Show rank instead of percentage
-                        local enchantRank = GST_BracketUtils.GetEnchantRank(currentSpecID, slotType, selectedBracket,
+                        local enchantRank = GST_BracketUtils.GetEnchantRank(selectedSpecID, slotType, selectedBracket,
                             enchantID)
                         if enchantRank then
                             displayValue = string.format("#%d", enchantRank)
@@ -719,7 +774,7 @@ local function ShowSummary()
                     local slotItems = {}
                     for _, item in ipairs(GSTSlotGearDb) do
                         if item.slotId == slotID and
-                            item.specId == currentSpecID and
+                            item.specId == selectedSpecID and
                             item.bracket == selectedBracket then
                             table.insert(slotItems, item)
                         end
@@ -787,7 +842,7 @@ local function ShowSummary()
                 if tooltipSlotType and GSTEnchantsDb then
                     local enchants = {}
                     for _, enchant in ipairs(GSTEnchantsDb) do
-                        if enchant.specId == currentSpecID and
+                        if enchant.specId == selectedSpecID and
                             enchant.slotType == tooltipSlotType and
                             enchant.bracket == selectedBracket then
                             table.insert(enchants, enchant)
@@ -842,7 +897,7 @@ local function ShowSummary()
     -- Update profile count text (clear first to prevent overlap)
     if SummaryFrame.profileCount then
         SummaryFrame.profileCount:SetText("") -- Clear existing text first
-        local profileCount = GetProfileCount(currentSpecID, selectedBracket)
+        local profileCount = GetProfileCount(selectedSpecID, selectedBracket)
         if profileCount then
             SummaryFrame.profileCount:SetText(string.format("%d profiles considered", profileCount))
         else
@@ -855,4 +910,10 @@ end
 
 function GST_Summary.SlashCmd(arg1)
     ShowSummary()
+end
+
+function GST_Summary.RefreshIfVisible()
+    if SummaryFrame and SummaryFrame:IsShown() then
+        ShowSummary()
+    end
 end

@@ -189,10 +189,11 @@ local function writeTooltip(tooltip, itemID, currentSpecId)
 	end
 end
 
-local frame = CreateFrame("FRAME");  -- Need a frame to respond to events
-frame:RegisterEvent("ADDON_LOADED"); -- Fired when saved variables are loaded
+local frame = CreateFrame("FRAME");                   -- Need a frame to respond to events
+frame:RegisterEvent("ADDON_LOADED");                  -- Fired when saved variables are loaded
+frame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED"); -- Fired when player changes spec
 
-function frame:OnEvent(event, arg1)
+function frame:OnEvent(event, arg1, arg2)
 	if event == "ADDON_LOADED" and arg1 == "GearStick" then
 		if GearStickSettings == nil then
 			GearStickSettings = {};
@@ -200,6 +201,30 @@ function frame:OnEvent(event, arg1)
 		local lastSeen = GearStickSettings["lastNewsNumber"] or 0
 		if newsNumber > lastSeen then
 			msgFrame:Show()
+		end
+	elseif event == "PLAYER_SPECIALIZATION_CHANGED" then
+		-- Update UI components when spec changes
+		-- arg1 is unit (should be "player")
+		-- arg2 is new spec ID
+		if arg1 == "player" then
+			if GearStickSettings["debug"] then
+				print("GearStick: Spec changed to " .. (arg2 or "unknown"))
+			end
+
+			-- Update Summary UI if it's currently shown
+			if GST_Summary and GST_Summary.RefreshIfVisible then
+				GST_Summary.RefreshIfVisible()
+			end
+
+			-- Update Talents UI if it's currently shown
+			if GST_Talents and GST_Talents.RefreshIfVisible then
+				GST_Talents.RefreshIfVisible()
+			end
+
+			-- Update Enchants UI if it's currently shown
+			if GST_Enchants and GST_Enchants.RefreshIfVisible then
+				GST_Enchants.RefreshIfVisible()
+			end
 		end
 	end
 end
