@@ -192,6 +192,7 @@ end
 local frame = CreateFrame("FRAME");                   -- Need a frame to respond to events
 frame:RegisterEvent("ADDON_LOADED");                  -- Fired when saved variables are loaded
 frame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED"); -- Fired when player changes spec
+frame:RegisterEvent("COMBAT_RATING_UPDATE");          -- Fired when player stats change (equipment, enchants, gems)
 
 function frame:OnEvent(event, arg1, arg2)
 	if event == "ADDON_LOADED" and arg1 == "GearStick" then
@@ -225,6 +226,23 @@ function frame:OnEvent(event, arg1, arg2)
 			if GST_Enchants and GST_Enchants.RefreshIfVisible then
 				GST_Enchants.RefreshIfVisible()
 			end
+		end
+	elseif event == "COMBAT_RATING_UPDATE" then
+		if GearStickSettings["debug"] then
+			print("GearStick: Combat ratings updated - recalculating gear recommendations")
+		end
+
+		-- Recalculate gear recommendations when stats change
+		-- This catches equipment changes, enchant changes, gem changes, etc.
+
+		-- Update Summary UI if it's currently shown
+		if GST_Summary and GST_Summary.RefreshIfVisible then
+			GST_Summary.RefreshIfVisible()
+		end
+
+		-- Update Enchants UI if it's currently shown
+		if GST_Enchants and GST_Enchants.RefreshIfVisible then
+			GST_Enchants.RefreshIfVisible()
 		end
 	end
 end

@@ -455,7 +455,7 @@ async function compileEnchants(
               lines += `    ["enchantName"] = "${sanitizeItemName(
                 raidbotsEnchantNameMap.get(enchant.enchantment_id) ||
                   enchant.source_item?.name ||
-                  `ds ${enchant.display_string}`
+                  enchant.display_string
               )}",\n`;
               lines += `    ["enchantSlotId"] = ${enchant.enchantment_slot.id},\n`;
               lines += `    ["enchantSlotType"] = "${enchant.enchantment_slot.type}",\n`;
