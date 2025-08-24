@@ -123,7 +123,9 @@ const buildRaidbotsEnchantNameMap = async () => {
 
 const outputFolder = resolve("./");
 async function fetchHistoBlob(name: string) {
-  const res = await fetch(process.env.STORAGE_URL + name);
+  const url = process.env.STORAGE_URL + name;
+  console.log("Fetching: " + url);
+  const res = await fetch(url);
   return (await res.json()) as Root;
 }
 
@@ -138,12 +140,12 @@ const slotTypeToWOWItemLocationIndex = {
   WRIST: 9,
   HANDS: 10,
   FINGER_1: 11,
-  FINGER_2: 11,
-  TRINKET_1: 12,
-  TRINKET_2: 12,
-  BACK: 16,
-  MAIN_HAND: 13,
-  OFF_HAND: 14,
+  FINGER_2: 12,
+  TRINKET_1: 13,
+  TRINKET_2: 14,
+  BACK: 15,
+  MAIN_HAND: 16,
+  OFF_HAND: 17,
 };
 
 // Correct slot mapping for summary tooltips
@@ -169,12 +171,12 @@ const slotTypeToCorrectWOWSlot = {
 function makeTTLine(
   key: string,
   item: { id: string; percent: number },
-  isRankOne: boolean,
+  rank: number,
   bisName: string
 ) {
-  return `["${key}"] = {${item.percent.toFixed(
-    1
-  )}, ${isRankOne}, "${bisName}"},\n`;
+  return `["${key}"] = {${item.percent.toFixed(1)}, ${
+    rank === 1 ? "true" : "false"
+  }, "${bisName}"},\n`;
 }
 
 function sanitizeItemName(name: string) {
@@ -191,24 +193,11 @@ async function writeDbLuaFile(data: Root, dbName: string, fileName: string) {
     }
 
     specInfo?.histoMaps.forEach((histoMap) => {
-      if (histoMap.histo[0]) {
-        lines += makeTTLine(
-          `${specInfo.specId}${
-            slotTypeToWOWItemLocationIndex[histoMap.slotType]
-          }`,
-          histoMap.histo[0],
-          true,
-          `${sanitizeItemName(
-            histoMap.histo[0].item.name
-          )} (${histoMap.histo[0].percent.toFixed(1)}%)`
-        );
-      }
-
       histoMap.histo.forEach((k, idx) => {
         lines += makeTTLine(
           `${specInfo.specId}${k.id}`,
           k,
-          idx === 0,
+          idx + 1,
           idx > 0
             ? `${sanitizeItemName(
                 histoMap.histo[0].item.name
