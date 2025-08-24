@@ -96,6 +96,26 @@ end
 
 -- Helper function to get profile count for a spec and bracket
 local function GetProfileCount(specId, bracket)
+    -- Handle solo shuffle brackets
+    if bracket:match("^shuffle_") then
+        -- Get class and spec names for the shuffle database lookup
+        local _, _, currentClassID = UnitClass("player")
+        local className = GST_BracketUtils.GetClassNameFromID(currentClassID)
+        local specName = GST_BracketUtils.GetSpecNameFromID(specId)
+
+        if className and specName then
+            local shuffleDbName = "usageDbshuffle_" .. className .. "_" .. specName
+            local shuffleDb = _G[shuffleDbName]
+
+            if shuffleDb then
+                local profileCountKey = specId .. "_profileCount"
+                return shuffleDb[profileCountKey]
+            end
+        end
+        return nil
+    end
+
+    -- Handle standard brackets (pve, 2v2, 3v3)
     local gearDbs = {
         ["pve"] = usageDbPvE,
         ["2v2"] = usageDb2v2,
@@ -414,12 +434,59 @@ local function ShowSummary()
         end
     end
 
-    -- Set default bracket if not set
-    if not UIDropDownMenu_GetSelectedValue(SummaryFrame.bracketDropdown) then
-        UIDropDownMenu_SetSelectedValue(SummaryFrame.bracketDropdown, "2v2")
-        UIDropDownMenu_SetText(SummaryFrame.bracketDropdown, "2V2")
+    -- Check if current bracket selection is valid for the selected spec
+    local currentBracket = UIDropDownMenu_GetSelectedValue(SummaryFrame.bracketDropdown)
+    local validBrackets = { "pve", "2v2", "3v3" }
+    local hasSoloShuffle = false
+
+    -- Add class-specific shuffle brackets if they exist for the current spec
+    if GSTBracketNames then
+        local _, _, currentClassID = UnitClass("player")
+        if currentClassID and selectedSpecID then
+            local className = GST_BracketUtils.GetClassNameFromID(currentClassID)
+            local specName = GST_BracketUtils.GetSpecNameFromID(selectedSpecID)
+
+            if className and specName then
+                local shuffleBracket = "shuffle_" .. className .. "_" .. specName
+                for _, bracket in ipairs(GSTBracketNames) do
+                    if bracket == shuffleBracket then
+                        table.insert(validBrackets, bracket)
+                        hasSoloShuffle = true
+                        break
+                    end
+                end
+            end
+        end
     end
-    -- UIDropDownMenu_SetWidth(SummaryFrame.bracketDropdown, 70)
+
+    -- Check if current bracket is still valid
+    local bracketIsValid = false
+    for _, validBracket in ipairs(validBrackets) do
+        if validBracket == currentBracket then
+            bracketIsValid = true
+            break
+        end
+    end
+
+    -- Set bracket selection based on UX preferences
+    if not currentBracket or not bracketIsValid then
+        local newBracket = "2v2" -- Default fallback
+
+        -- If user was on solo shuffle and new spec has solo shuffle, try to maintain that
+        if currentBracket and currentBracket:match("^shuffle_") and hasSoloShuffle then
+            -- Find the solo shuffle bracket for the new spec
+            for _, validBracket in ipairs(validBrackets) do
+                if validBracket:match("^shuffle_") then
+                    newBracket = validBracket
+                    break
+                end
+            end
+        end
+
+        UIDropDownMenu_SetSelectedValue(SummaryFrame.bracketDropdown, newBracket)
+        local displayText = newBracket:match("^shuffle_") and "Solo Shuffle" or string.upper(newBracket)
+        UIDropDownMenu_SetText(SummaryFrame.bracketDropdown, displayText)
+    end
     UIDropDownMenu_JustifyText(SummaryFrame.bracketDropdown, "LEFT")
 
     -- Create "Hide healthy slots" checkbox if it doesn't exist

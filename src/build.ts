@@ -1,6 +1,6 @@
 import "dotenv/config";
 import fetch from "node-fetch";
-import { Root } from "./types";
+import { Enchantment, Root } from "./types";
 import { closeSync, openSync, writeFileSync } from "fs";
 import { join, resolve } from "path";
 import { SpecializationsApi } from "./specTypes";
@@ -87,6 +87,39 @@ export const shuffleSpecs: string[] = [
   "shuffle-mage-arcane",
   "shuffle-warrior-protection",
 ];
+
+type RaidbotsEnchant = {
+  id: number;
+  displayName: string;
+  itemId: number;
+  itemName: string;
+  craftingQuality: number;
+};
+
+const fetchRaidbotsEnchants = async (): Promise<RaidbotsEnchant[]> => {
+  const res = await fetch(
+    "https://www.raidbots.com/static/data/live/enchantments.json"
+  );
+  return (await res.json()) as RaidbotsEnchant[];
+};
+
+const qualityNames = {
+  1: `|A:Professions-ChatIcon-Quality-Tier1:20:20|a`,
+  2: `|A:Professions-ChatIcon-Quality-Tier2:20:20|a`,
+  3: `|A:Professions-ChatIcon-Quality-Tier3:20:20|a`,
+};
+const raidbotsEnchantNameMap = new Map<number, string>();
+
+const buildRaidbotsEnchantNameMap = async () => {
+  console.log("Building raidbots enchant name map");
+  const enchants = await fetchRaidbotsEnchants();
+  for (const enchant of enchants) {
+    raidbotsEnchantNameMap.set(
+      enchant.id,
+      `${enchant.itemName} ${qualityNames[enchant.craftingQuality]}`
+    );
+  }
+};
 
 const outputFolder = resolve("./");
 async function fetchHistoBlob(name: string) {
@@ -347,17 +380,29 @@ async function compileEnchants(
   data: { bracket: string; data: Root }[],
   fileName: string
 ) {
+  await buildRaidbotsEnchantNameMap();
+
   let lines = `GSTEnchantsDb = {\n`;
 
   for (const { bracket, data: bracketData } of data) {
+    const maybeLogBracket = (s: string) =>
+      bracket === "xxx2v2" ? console.log(s) : null;
     for (const specInfo of bracketData) {
+      maybeLogBracket("SPECINFO: " + specInfo.specId);
       if (specInfo.histoMaps && specInfo.histoMaps.length > 0) {
         for (const histoMap of specInfo.histoMaps) {
           if (histoMap.histo && histoMap.histo.length > 0) {
+            const maybeLog = (s: string) =>
+              bracket === "xxx2v2" &&
+              histoMap.slotType == "FEET" &&
+              specInfo.specId === "262"
+                ? console.log(s)
+                : null;
+
             // Create a map to track enchants by slot type and enchantment ID
             const enchantMap = new Map<
               string,
-              { count: number; percent: number; enchant: any }
+              { count: number; percent: number; enchant: Enchantment }
             >();
 
             for (const histoItem of histoMap.histo) {
@@ -366,13 +411,15 @@ async function compileEnchants(
                 histoItem.item.enchantments.length > 0
               ) {
                 for (const enchant of histoItem.item.enchantments) {
-                  const enchantKey = `${enchant.enchantment_id}_${enchant.enchantment_slot.type}`;
-
+                  const enchantKey = `${enchant.enchantment_id}_${histoItem.item.slot.name}_${enchant.enchantment_slot.type}`;
+                  // maybeLog(JSON.stringify(enchant));
+                  // maybeLog(enchantKey);
                   if (enchantMap.has(enchantKey)) {
                     const existing = enchantMap.get(enchantKey)!;
                     existing.count += histoItem.count;
                     existing.percent += histoItem.percent;
                   } else {
+                    maybeLog("Adding: " + enchantKey);
                     enchantMap.set(enchantKey, {
                       count: histoItem.count,
                       percent: histoItem.percent,
@@ -383,15 +430,22 @@ async function compileEnchants(
               }
             }
 
+            maybeLog("print?");
+            for (var k of enchantMap.keys()) {
+              maybeLog(k);
+              maybeLog(JSON.stringify(enchantMap.get(k)));
+            }
+
             // Sort enchants by usage percentage and output the top ones
-            const sortedEnchants = Array.from(enchantMap.values())
-              .sort((a, b) => b.percent - a.percent)
-              .slice(0, 5); // Top 5 enchants per slot
+            const sortedEnchants = Array.from(enchantMap.values()).sort(
+              (a, b) => b.percent - a.percent
+            );
 
             for (let i = 0; i < sortedEnchants.length; i++) {
               const enchantData = sortedEnchants[i];
               const enchant = enchantData.enchant;
 
+              // 262_3v3
               const key = `${specInfo.specId}_${bracket}_${histoMap.slotType}_${enchant.enchantment_id}`;
               lines += `  {\n`;
               lines += `    ["bracket"] = "${bracket}",\n`;
@@ -399,7 +453,9 @@ async function compileEnchants(
               lines += `    ["slotType"] = "${histoMap.slotType}",\n`;
               lines += `    ["enchantId"] = ${enchant.enchantment_id},\n`;
               lines += `    ["enchantName"] = "${sanitizeItemName(
-                enchant.display_string
+                raidbotsEnchantNameMap.get(enchant.enchantment_id) ||
+                  enchant.source_item?.name ||
+                  `ds ${enchant.display_string}`
               )}",\n`;
               lines += `    ["enchantSlotId"] = ${enchant.enchantment_slot.id},\n`;
               lines += `    ["enchantSlotType"] = "${enchant.enchantment_slot.type}",\n`;
