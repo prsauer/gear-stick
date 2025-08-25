@@ -1,7 +1,7 @@
 -- SlotGear Index Functions
 -- Builds an index for the GSTSlotGearDb database for fast lookups
 
-local SlotGearIndexes = {}
+SlotGearIndexes = {}
 
 -- Global index table that gets built once
 GSTSlotGearIndex = nil
@@ -68,5 +68,3 @@ end
 -- Example usage:
 -- SlotGearIndexes.InitializeIndex() -- Call this once when addon loads
 -- local results = SlotGearIndexes.LookupBySlotSpecBracket(1, 250, "pve") -- Get all head slot items for spec 250 in PvE bracket
-
-return SlotGearIndexes
