@@ -290,9 +290,11 @@ async function writeDbLuaFile(data: Root, dbName: string, fileName: string) {
         item,
         idx + 1,
         idx > 0
-          ? `${sanitizeItemName(item.item.name)} (${getStatsTag(
-              item
-            )}) (${item.percent.toFixed(1)}% - #${idx})`
+          ? `${sanitizeItemName(
+              fingerDataCombined[0].item.name
+            )} (${getStatsTag(
+              fingerDataCombined[0]
+            )}) (${fingerDataCombined[0].percent.toFixed(1)}% - #${idx})`
           : ""
       );
     });
@@ -302,9 +304,11 @@ async function writeDbLuaFile(data: Root, dbName: string, fileName: string) {
         item,
         idx + 1,
         idx > 0
-          ? `${sanitizeItemName(item.item.name)} (${getStatsTag(
-              item
-            )}) (${item.percent.toFixed(1)}% - #${idx})`
+          ? `${sanitizeItemName(
+              trinketDataCombined[0].item.name
+            )} (${getStatsTag(
+              trinketDataCombined[0]
+            )}) (${trinketDataCombined[0].percent.toFixed(1)}% - #${idx})`
           : ""
       );
     });

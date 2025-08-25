@@ -133,7 +133,9 @@ local function writeTooltip(tooltip, itemID, currentSpecId)
 
 	if GearStickSettings["2v2"] then
 		if usageDb2v2[key] then
-			print(key)
+			if GearStickSettings["debug"] then
+				print(key)
+			end
 			local choiceColor = "|cFFeeFF00"
 			local rankText = " (#" .. usageDb2v2[key][2] .. ")"
 			if usageDb2v2[key][2] == 1 then

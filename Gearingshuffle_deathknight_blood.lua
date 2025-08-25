@@ -21,8 +21,8 @@ usageDbshuffle_deathknight_blood = {
 ["250235499-MASTERY_RATING"] = {100.0, 1, ""},
 ["250230378-VERSATILITY-MASTERY_RATING"] = {100.0, 1, ""},
 ["250215137-VERSATILITY-MASTERY_RATING"] = {66.7, 1, ""},
-["250215137-CRIT_RATING-VERSATILITY"] = {33.3, 2, "Algari Competitor's Signet (Crit-Vers) (33.3% - #1)"},
+["250215137-CRIT_RATING-VERSATILITY"] = {33.3, 2, "Algari Competitor's Signet (Vers-Mastery) (66.7% - #1)"},
 ["250230353-"] = {66.7, 1, ""},
-["250230352-HASTE_RATING"] = {33.3, 2, "Astral Aspirant's Badge of Ferocity (Haste) (33.3% - #1)"},
-["250230354-HASTE_RATING"] = {33.3, 3, "Astral Aspirant's Insignia of Alacrity (Haste) (33.3% - #2)"},
+["250230352-HASTE_RATING"] = {33.3, 2, "Astral Aspirant's Medallion () (66.7% - #1)"},
+["250230354-HASTE_RATING"] = {33.3, 3, "Astral Aspirant's Medallion () (66.7% - #2)"},
 };
