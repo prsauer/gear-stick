@@ -242,6 +242,8 @@ local function IsSlotHealthy(slotID, specID, selectedBracket)
 end
 
 local function ShowSummary()
+    local startTime = debugprofilestop()
+
     -- Create the main frame if it doesn't exist
     if not SummaryFrame then
         local frame = CreateFrame("Frame", "SummaryFrame", UIParent, "BackdropTemplate")
@@ -311,6 +313,7 @@ local function ShowSummary()
     end
 
     -- Get current spec info
+    local specStartTime = debugprofilestop()
     local currentSpec = GetSpecialization()
     local currentSpecID = currentSpec and select(1, GetSpecializationInfo(currentSpec)) or nil
     local _, _, currentClassID = UnitClass("player")
@@ -319,8 +322,13 @@ local function ShowSummary()
         print("No specialization selected")
         return
     end
+    local specEndTime = debugprofilestop()
+    if GearStickSettings and GearStickSettings["profiling"] then
+        print("GearStick: Spec info retrieval took " .. string.format("%.2f", specEndTime - specStartTime) .. "ms")
+    end
 
     -- Create spec dropdown if it doesn't exist
+    local dropdownStartTime = debugprofilestop()
     if not SummaryFrame.specDropdown then
         local dropdown = CreateFrame("Frame", "GSTSummarySpecDropdown", SummaryFrame.controlContainer,
             "UIDropDownMenuTemplate")
@@ -352,8 +360,14 @@ local function ShowSummary()
             end
         end
     end
+    local dropdownEndTime = debugprofilestop()
+    if GearStickSettings and GearStickSettings["profiling"] then
+        print("GearStick: Spec dropdown setup took " ..
+            string.format("%.2f", dropdownEndTime - dropdownStartTime) .. "ms")
+    end
 
     -- Set default spec if not set (use current spec)
+    local specSetupStartTime = debugprofilestop()
     if not UIDropDownMenu_GetSelectedValue(SummaryFrame.specDropdown) then
         UIDropDownMenu_SetSelectedValue(SummaryFrame.specDropdown, currentSpecID)
         local _, specName = GetSpecializationInfoForClassID(currentClassID, currentSpec)
@@ -372,11 +386,17 @@ local function ShowSummary()
         end
     end
     UIDropDownMenu_JustifyText(SummaryFrame.specDropdown, "LEFT")
+    local specSetupEndTime = debugprofilestop()
+    if GearStickSettings and GearStickSettings["profiling"] then
+        print("GearStick: Spec dropdown setup took " ..
+            string.format("%.2f", specSetupEndTime - specSetupStartTime) .. "ms")
+    end
 
     -- Get selected spec ID
     local selectedSpecID = UIDropDownMenu_GetSelectedValue(SummaryFrame.specDropdown)
 
     -- Create bracket dropdown if it doesn't exist
+    local bracketDropdownStartTime = debugprofilestop()
     if not SummaryFrame.bracketDropdown then
         local dropdown = CreateFrame("Frame", "GSTSummaryBracketDropdown", SummaryFrame.controlContainer,
             "UIDropDownMenuTemplate")
@@ -423,8 +443,14 @@ local function ShowSummary()
             end
         end
     end
+    local bracketDropdownEndTime = debugprofilestop()
+    if GearStickSettings and GearStickSettings["profiling"] then
+        print("GearStick: Bracket dropdown setup took " ..
+            string.format("%.2f", bracketDropdownEndTime - bracketDropdownStartTime) .. "ms")
+    end
 
     -- Check if current bracket selection is valid for the selected spec
+    local bracketValidationStartTime = debugprofilestop()
     local currentBracket = UIDropDownMenu_GetSelectedValue(SummaryFrame.bracketDropdown)
     local validBrackets = { "pve", "2v2", "3v3" }
     local hasSoloShuffle = false
@@ -478,8 +504,14 @@ local function ShowSummary()
         UIDropDownMenu_SetText(SummaryFrame.bracketDropdown, displayText)
     end
     UIDropDownMenu_JustifyText(SummaryFrame.bracketDropdown, "LEFT")
+    local bracketValidationEndTime = debugprofilestop()
+    if GearStickSettings and GearStickSettings["profiling"] then
+        print("GearStick: Bracket validation took " ..
+            string.format("%.2f", bracketValidationEndTime - bracketValidationStartTime) .. "ms")
+    end
 
     -- Create "Hide healthy slots" checkbox if it doesn't exist
+    local checkboxStartTime = debugprofilestop()
     if not SummaryFrame.hideHealthyCheckbox then
         local checkbox = CreateFrame("CheckButton", nil, SummaryFrame.controlContainer, "UICheckButtonTemplate")
         checkbox:SetPoint("TOPLEFT", SummaryFrame.controlContainer, "TOPLEFT", 0, -95)
@@ -520,12 +552,17 @@ local function ShowSummary()
 
         SummaryFrame.showRankCheckbox = checkbox
     end
+    local checkboxEndTime = debugprofilestop()
+    if GearStickSettings and GearStickSettings["profiling"] then
+        print("GearStick: Checkbox setup took " .. string.format("%.2f", checkboxEndTime - checkboxStartTime) .. "ms")
+    end
 
     local selectedBracket = UIDropDownMenu_GetSelectedValue(SummaryFrame.bracketDropdown)
     local hideHealthy = SummaryFrame.hideHealthyCheckbox:GetChecked()
     local showRank = SummaryFrame.showRankCheckbox:GetChecked()
 
     -- Clear existing slot frames
+    local clearStartTime = debugprofilestop()
     if SummaryFrame.slotFrames then
         for _, slotFrame in pairs(SummaryFrame.slotFrames) do
             slotFrame:Hide()
@@ -533,6 +570,10 @@ local function ShowSummary()
         end
     end
     SummaryFrame.slotFrames = {}
+    local clearEndTime = debugprofilestop()
+    if GearStickSettings and GearStickSettings["profiling"] then
+        print("GearStick: Clearing existing frames took " .. string.format("%.2f", clearEndTime - clearStartTime) .. "ms")
+    end
 
     -- Define slot order and layout configuration
     local slotOrder = {
@@ -562,6 +603,7 @@ local function ShowSummary()
     -- Use shared slot mapping from ItemUtils
 
     -- Create slot frames with dynamic flow layout
+    local slotCreationStartTime = debugprofilestop()
     local currentY = { layout.startY, layout.startY } -- Track Y position for left and right columns
 
     for rowIndex, rowSlots in ipairs(slotOrder) do
@@ -926,6 +968,12 @@ local function ShowSummary()
         end
     end
 
+    local slotCreationEndTime = debugprofilestop()
+    if GearStickSettings and GearStickSettings["profiling"] then
+        print("GearStick: Slot frame creation took " ..
+            string.format("%.2f", slotCreationEndTime - slotCreationStartTime) .. "ms")
+    end
+
     -- Automatically resize frame to fit content
     local finalY = math.min(currentY[1], currentY[2])
     local contentHeight = math.abs(finalY) + 80         -- Add padding for legend and controls
@@ -948,6 +996,11 @@ local function ShowSummary()
         else
             SummaryFrame.profileCount:SetText("Profile count unavailable")
         end
+    end
+
+    local endTime = debugprofilestop()
+    if GearStickSettings and GearStickSettings["profiling"] then
+        print("GearStick: ShowSummary total execution time: " .. string.format("%.2f", endTime - startTime) .. "ms")
     end
 
     SummaryFrame:Show()

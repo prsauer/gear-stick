@@ -223,8 +223,8 @@ function frame:OnEvent(event, arg1, arg2)
 		local addonLoadEnd = debugprofilestop()
 		local totalTime = addonLoadEnd - addonLoadStart
 
-		-- Only print timing info if debug is enabled
-		if GearStickSettings["debug"] then
+		-- Only print timing info if profiling is enabled
+		if GearStickSettings["profiling"] then
 			print("GearStick: SlotGearIndexes initialized in " .. string.format("%.2f", indexTime) .. "ms")
 			print("GearStick: EnchantsIndexes initialized in " .. string.format("%.2f", enchantsIndexTime) .. "ms")
 			print("GearStick: Settings initialized in " .. string.format("%.2f", settingsTime) .. "ms")
@@ -260,7 +260,7 @@ function frame:OnEvent(event, arg1, arg2)
 
 		local specChangeEnd = debugprofilestop()
 		local specChangeTime = specChangeEnd - specChangeStart
-		if GearStickSettings["debug"] then
+		if GearStickSettings["profiling"] then
 			print("GearStick: Spec change handler completed in " .. string.format("%.2f", specChangeTime) .. "ms")
 		end
 	elseif event == "COMBAT_RATING_UPDATE" then
@@ -285,7 +285,7 @@ function frame:OnEvent(event, arg1, arg2)
 
 		local combatRatingEnd = debugprofilestop()
 		local combatRatingTime = combatRatingEnd - combatRatingStart
-		if GearStickSettings["debug"] then
+		if GearStickSettings["profiling"] then
 			print("GearStick: Combat rating update handler completed in " ..
 				string.format("%.2f", combatRatingTime) .. "ms")
 		end
@@ -313,7 +313,7 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, GST_OnTooltip
 
 SlashCmdList.GST = function(arg1)
 	if arg1 == nil or arg1 == "" then
-		print("Pass one of: 2v2 3v3 pve bis talents enchants summary news debug status reset")
+		print("Pass one of: 2v2 3v3 pve bis talents enchants summary news debug profiling status reset")
 		GST_Summary.SlashCmd("")
 		return
 	end
@@ -339,6 +339,17 @@ SlashCmdList.GST = function(arg1)
 		msgFrame:Show()
 		return
 	end
+	-- toggle profiling
+	if msg == "profiling" then
+		if GearStickSettings["profiling"] == true then
+			GearStickSettings["profiling"] = false
+			print("Disabled profiling")
+		else
+			GearStickSettings["profiling"] = true
+			print("Enabled profiling")
+		end
+		return
+	end
 	-- reset all options
 	if msg == "reset" then
 		GearStickSettings = {}
@@ -356,7 +367,7 @@ SlashCmdList.GST = function(arg1)
 		return
 	end
 	if msg ~= "2v2" and msg ~= "3v3" and msg ~= "pve" and msg ~= "bis" and msg ~= "debug" then
-		print("Pass one of: 2v2 3v3 bis pve debug talents enchants summary status reset")
+		print("Pass one of: 2v2 3v3 bis pve debug profiling talents enchants summary status reset")
 		return
 	end
 
