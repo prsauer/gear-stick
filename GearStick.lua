@@ -188,6 +188,7 @@ frame:RegisterEvent("COMBAT_RATING_UPDATE");          -- Fired when player stats
 
 function frame:OnEvent(event, arg1, arg2)
 	if event == "ADDON_LOADED" and arg1 == "GearStick" then
+		SlotGearIndexes.InitializeIndex()
 		if GearStickSettings == nil then
 			GearStickSettings = {};
 		end
