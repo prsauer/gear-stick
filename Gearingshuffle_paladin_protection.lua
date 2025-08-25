@@ -46,8 +46,7 @@ usageDbshuffle_paladin_protection = {
 ["70235499-VERSATILITY"] = {100.0, 1, ""},
 ["70230378-VERSATILITY-MASTERY_RATING"] = {100.0, 1, ""},
 ["70230359-VERSATILITY-MASTERY_RATING"] = {50.0, 1, ""},
-["70230358-VERSATILITY-CRIT_RATING"] = {50.0, 2, "Astral Aspirant's Signet (Vers-Mastery) (50.0% - #1)"},
-["70230634-VERSATILITY-MASTERY_RATING"] = {50.0, 3, "Astral Aspirant's Signet (Vers-Mastery) (50.0% - #2)"},
+["70230634-VERSATILITY-MASTERY_RATING"] = {50.0, 2, "Astral Aspirant's Signet (Vers-Mastery) (50.0% - #1)"},
 ["70230354-HASTE_RATING"] = {100.0, 1, ""},
 ["70230353-"] = {100.0, 2, "Astral Aspirant's Insignia of Alacrity (Haste) (100.0% - #1)"},
 };

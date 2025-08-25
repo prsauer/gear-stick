@@ -95,9 +95,7 @@ local function writeTooltip(tooltip, itemID, currentSpecId)
 
 	if GearStickSettings["2v2"] then
 		if usageDb2v2[key] then
-			if GearStickSettings["debug"] then
-				print(key)
-			end
+			GST_LogDebug("2v2: " .. key)
 			local choiceColor = "|cFFeeFF00"
 			local rankText = " (#" .. usageDb2v2[key][2] .. ")"
 			if usageDb2v2[key][2] == 1 then
@@ -122,9 +120,7 @@ local function writeTooltip(tooltip, itemID, currentSpecId)
 
 	if GearStickSettings["3v3"] then
 		if usageDb3v3[key] then
-			if GearStickSettings["debug"] then
-				print(key)
-			end
+			GST_LogDebug(key)
 			local choiceColor = "|cFFeeFF00"
 			local rankText = " (#" .. usageDb3v3[key][2] .. ")"
 			if usageDb3v3[key][2] == 1 then
@@ -149,9 +145,7 @@ local function writeTooltip(tooltip, itemID, currentSpecId)
 
 	if GearStickSettings["pve"] then
 		if usageDbPvE[key] then
-			if GearStickSettings["debug"] then
-				print(key)
-			end
+			GST_LogDebug(key)
 			local choiceColor = "|cFFeeFF00"
 			local rankText = " (#" .. usageDbPvE[key][2] .. ")"
 			if usageDbPvE[key][2] == 1 then
@@ -224,13 +218,11 @@ function frame:OnEvent(event, arg1, arg2)
 		local totalTime = addonLoadEnd - addonLoadStart
 
 		-- Only print timing info if profiling is enabled
-		if GearStickSettings["profiling"] then
-			print("GearStick: SlotGearIndexes initialized in " .. string.format("%.2f", indexTime) .. "ms")
-			print("GearStick: EnchantsIndexes initialized in " .. string.format("%.2f", enchantsIndexTime) .. "ms")
-			print("GearStick: Settings initialized in " .. string.format("%.2f", settingsTime) .. "ms")
-			print("GearStick: News check completed in " .. string.format("%.2f", newsTime) .. "ms")
-			print("GearStick: Total addon load time: " .. string.format("%.2f", totalTime) .. "ms")
-		end
+		GST_LogProfiling("SlotGearIndexes initialized in " .. string.format("%.2f", indexTime) .. "ms")
+		GST_LogProfiling("EnchantsIndexes initialized in " .. string.format("%.2f", enchantsIndexTime) .. "ms")
+		GST_LogProfiling("Settings initialized in " .. string.format("%.2f", settingsTime) .. "ms")
+		GST_LogProfiling("News check completed in " .. string.format("%.2f", newsTime) .. "ms")
+		GST_LogProfiling("Total addon load time: " .. string.format("%.2f", totalTime) .. "ms")
 	elseif event == "PLAYER_SPECIALIZATION_CHANGED" then
 		local specChangeStart = debugprofilestop()
 
@@ -238,9 +230,7 @@ function frame:OnEvent(event, arg1, arg2)
 		-- arg1 is unit (should be "player")
 		-- arg2 is new spec ID
 		if arg1 == "player" then
-			if GearStickSettings["debug"] then
-				print("GearStick: Spec changed to " .. (arg2 or "unknown"))
-			end
+			GST_LogDebug("Spec changed to " .. (arg2 or "unknown"))
 
 			-- Update Summary UI if it's currently shown
 			if GST_Summary and GST_Summary.RefreshIfVisible then
@@ -260,15 +250,11 @@ function frame:OnEvent(event, arg1, arg2)
 
 		local specChangeEnd = debugprofilestop()
 		local specChangeTime = specChangeEnd - specChangeStart
-		if GearStickSettings["profiling"] then
-			print("GearStick: Spec change handler completed in " .. string.format("%.2f", specChangeTime) .. "ms")
-		end
+		GST_LogProfiling("Spec change handler completed in " .. string.format("%.2f", specChangeTime) .. "ms")
 	elseif event == "COMBAT_RATING_UPDATE" then
 		local combatRatingStart = debugprofilestop()
 
-		if GearStickSettings["debug"] then
-			print("GearStick: Combat ratings updated - recalculating gear recommendations")
-		end
+		GST_LogDebug("Combat ratings updated - recalculating gear recommendations")
 
 		-- Recalculate gear recommendations when stats change
 		-- This catches equipment changes, enchant changes, gem changes, etc.
@@ -285,10 +271,7 @@ function frame:OnEvent(event, arg1, arg2)
 
 		local combatRatingEnd = debugprofilestop()
 		local combatRatingTime = combatRatingEnd - combatRatingStart
-		if GearStickSettings["profiling"] then
-			print("GearStick: Combat rating update handler completed in " ..
-				string.format("%.2f", combatRatingTime) .. "ms")
-		end
+		GST_LogProfiling("Combat rating update handler completed in " .. string.format("%.2f", combatRatingTime) .. "ms")
 	end
 end
 
@@ -313,7 +296,7 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, GST_OnTooltip
 
 SlashCmdList.GST = function(arg1)
 	if arg1 == nil or arg1 == "" then
-		print("Pass one of: 2v2 3v3 pve bis talents enchants summary news debug profiling status reset")
+		GST_LogUser("Pass one of: 2v2 3v3 pve bis talents enchants summary news debug profiling status reset")
 		GST_Summary.SlashCmd("")
 		return
 	end
@@ -343,40 +326,40 @@ SlashCmdList.GST = function(arg1)
 	if msg == "profiling" then
 		if GearStickSettings["profiling"] == true then
 			GearStickSettings["profiling"] = false
-			print("Disabled profiling")
+			GST_LogUser("Disabled profiling")
 		else
 			GearStickSettings["profiling"] = true
-			print("Enabled profiling")
+			GST_LogUser("Enabled profiling")
 		end
 		return
 	end
 	-- reset all options
 	if msg == "reset" then
 		GearStickSettings = {}
-		print("GearStick settings have been reset.")
+		GST_LogUser("Settings have been reset.")
 		return
 	end
 	-- print current settings to console
 	if msg == "status" then
-		print("")
-		print("GearStick current settings:")
-		print("---------------------------")
+		GST_LogUser("")
+		GST_LogUser("Current settings:")
+		GST_LogUser("---------------------------")
 		for key, value in pairs(GearStickSettings) do
-			print(key, value)
+			GST_LogUser(key, value)
 		end
 		return
 	end
 	if msg ~= "2v2" and msg ~= "3v3" and msg ~= "pve" and msg ~= "bis" and msg ~= "debug" then
-		print("Pass one of: 2v2 3v3 bis pve debug profiling talents enchants summary status reset")
+		GST_LogUser("Pass one of: 2v2 3v3 bis pve debug profiling talents enchants summary status reset")
 		return
 	end
 
 	if GearStickSettings[msg] == true then
 		GearStickSettings[msg] = false
-		print("Disabled " .. msg .. " tooltips")
+		GST_LogUser("Disabled " .. msg .. " tooltips")
 	else
 		GearStickSettings[msg] = true
-		print("Enabled " .. msg .. " tooltips")
+		GST_LogUser("Enabled " .. msg .. " tooltips")
 	end
 end
 SLASH_GST1 = "/gst"

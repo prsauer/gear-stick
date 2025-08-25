@@ -131,6 +131,7 @@ end
 
 -- Helper function to check if a slot is "healthy"
 local function IsSlotHealthy(slotID, specID, selectedBracket)
+    -- Initialize timing variables
     local itemInfo = GST_ItemUtils.GetSlotItemInfo(slotID)
     if not itemInfo then
         return false -- No item = not healthy
@@ -191,6 +192,7 @@ local function IsSlotHealthy(slotID, specID, selectedBracket)
         -- If not a top pick, check the old >50% rule
         local gearInfo = GetGearPopularity(specID, slotType, itemID, selectedBracket, slotID,
             itemInfo and itemInfo.statsShort)
+
         local gearPercent = gearInfo and gearInfo.percent or 0
         gearIsHealthy = (gearPercent > 50)
     end
@@ -323,9 +325,7 @@ local function ShowSummary()
         return
     end
     local specEndTime = debugprofilestop()
-    if GearStickSettings and GearStickSettings["profiling"] then
-        print("GearStick: Spec info retrieval took " .. string.format("%.2f", specEndTime - specStartTime) .. "ms")
-    end
+    GST_LogProfiling("Spec info retrieval took " .. string.format("%.2f", specEndTime - specStartTime) .. "ms")
 
     -- Create spec dropdown if it doesn't exist
     local dropdownStartTime = debugprofilestop()
@@ -361,10 +361,7 @@ local function ShowSummary()
         end
     end
     local dropdownEndTime = debugprofilestop()
-    if GearStickSettings and GearStickSettings["profiling"] then
-        print("GearStick: Spec dropdown setup took " ..
-            string.format("%.2f", dropdownEndTime - dropdownStartTime) .. "ms")
-    end
+    GST_LogProfiling("Spec dropdown setup took " .. string.format("%.2f", dropdownEndTime - dropdownStartTime) .. "ms")
 
     -- Set default spec if not set (use current spec)
     local specSetupStartTime = debugprofilestop()
@@ -387,10 +384,7 @@ local function ShowSummary()
     end
     UIDropDownMenu_JustifyText(SummaryFrame.specDropdown, "LEFT")
     local specSetupEndTime = debugprofilestop()
-    if GearStickSettings and GearStickSettings["profiling"] then
-        print("GearStick: Spec dropdown setup took " ..
-            string.format("%.2f", specSetupEndTime - specSetupStartTime) .. "ms")
-    end
+    GST_LogProfiling("Spec dropdown setup took " .. string.format("%.2f", specSetupEndTime - specSetupStartTime) .. "ms")
 
     -- Get selected spec ID
     local selectedSpecID = UIDropDownMenu_GetSelectedValue(SummaryFrame.specDropdown)
@@ -444,10 +438,8 @@ local function ShowSummary()
         end
     end
     local bracketDropdownEndTime = debugprofilestop()
-    if GearStickSettings and GearStickSettings["profiling"] then
-        print("GearStick: Bracket dropdown setup took " ..
-            string.format("%.2f", bracketDropdownEndTime - bracketDropdownStartTime) .. "ms")
-    end
+    GST_LogProfiling("Bracket dropdown setup took " ..
+        string.format("%.2f", bracketDropdownEndTime - bracketDropdownStartTime) .. "ms")
 
     -- Check if current bracket selection is valid for the selected spec
     local bracketValidationStartTime = debugprofilestop()
@@ -505,10 +497,8 @@ local function ShowSummary()
     end
     UIDropDownMenu_JustifyText(SummaryFrame.bracketDropdown, "LEFT")
     local bracketValidationEndTime = debugprofilestop()
-    if GearStickSettings and GearStickSettings["profiling"] then
-        print("GearStick: Bracket validation took " ..
-            string.format("%.2f", bracketValidationEndTime - bracketValidationStartTime) .. "ms")
-    end
+    GST_LogProfiling("Bracket validation took " ..
+        string.format("%.2f", bracketValidationEndTime - bracketValidationStartTime) .. "ms")
 
     -- Create "Hide healthy slots" checkbox if it doesn't exist
     local checkboxStartTime = debugprofilestop()
@@ -553,9 +543,7 @@ local function ShowSummary()
         SummaryFrame.showRankCheckbox = checkbox
     end
     local checkboxEndTime = debugprofilestop()
-    if GearStickSettings and GearStickSettings["profiling"] then
-        print("GearStick: Checkbox setup took " .. string.format("%.2f", checkboxEndTime - checkboxStartTime) .. "ms")
-    end
+    GST_LogProfiling("Checkbox setup took " .. string.format("%.2f", checkboxEndTime - checkboxStartTime) .. "ms")
 
     local selectedBracket = UIDropDownMenu_GetSelectedValue(SummaryFrame.bracketDropdown)
     local hideHealthy = SummaryFrame.hideHealthyCheckbox:GetChecked()
@@ -571,9 +559,7 @@ local function ShowSummary()
     end
     SummaryFrame.slotFrames = {}
     local clearEndTime = debugprofilestop()
-    if GearStickSettings and GearStickSettings["profiling"] then
-        print("GearStick: Clearing existing frames took " .. string.format("%.2f", clearEndTime - clearStartTime) .. "ms")
-    end
+    GST_LogProfiling("Clearing existing frames took " .. string.format("%.2f", clearEndTime - clearStartTime) .. "ms")
 
     -- Define slot order and layout configuration
     local slotOrder = {
@@ -610,14 +596,24 @@ local function ShowSummary()
         local visibleSlotsInRow = {}
 
         -- First pass: determine which slots in this row should be visible
+        local firstPassStartTime = debugprofilestop()
         for _, slotID in ipairs(rowSlots) do
+            local isHealthyStartTime = debugprofilestop()
             local isHealthy = IsSlotHealthy(slotID, selectedSpecID, selectedBracket)
+            local isHealthyEndTime = debugprofilestop()
+            GST_LogProfiling(string.format("Slot %d - IsSlotHealthy: %.3fms", slotID,
+                isHealthyEndTime - isHealthyStartTime))
+
             if not (hideHealthy and isHealthy) then
                 table.insert(visibleSlotsInRow, slotID)
             end
         end
+        local firstPassEndTime = debugprofilestop()
+        GST_LogProfiling(string.format("Row %d - First pass (IsSlotHealthy calls): %.3fms", rowIndex,
+            firstPassEndTime - firstPassStartTime))
 
         -- Second pass: position the visible slots
+        local secondPassStartTime = debugprofilestop()
         for index, slotID in ipairs(visibleSlotsInRow) do
             local slotFrame = CreateFrame("Frame", nil, SummaryFrame, "BackdropTemplate")
             slotFrame:SetSize(layout.columnWidth, layout.slotHeight)
@@ -966,13 +962,14 @@ local function ShowSummary()
 
             table.insert(SummaryFrame.slotFrames, slotFrame)
         end
+        local secondPassEndTime = debugprofilestop()
+        GST_LogProfiling(string.format("Row %d - Second pass (frame creation): %.3fms", rowIndex,
+            secondPassEndTime - secondPassStartTime))
     end
 
     local slotCreationEndTime = debugprofilestop()
-    if GearStickSettings and GearStickSettings["profiling"] then
-        print("GearStick: Slot frame creation took " ..
-            string.format("%.2f", slotCreationEndTime - slotCreationStartTime) .. "ms")
-    end
+    GST_LogProfiling("Slot frame creation took " ..
+        string.format("%.2f", slotCreationEndTime - slotCreationStartTime) .. "ms")
 
     -- Automatically resize frame to fit content
     local finalY = math.min(currentY[1], currentY[2])
@@ -999,9 +996,7 @@ local function ShowSummary()
     end
 
     local endTime = debugprofilestop()
-    if GearStickSettings and GearStickSettings["profiling"] then
-        print("GearStick: ShowSummary total execution time: " .. string.format("%.2f", endTime - startTime) .. "ms")
-    end
+    GST_LogProfiling("ShowSummary total execution time: " .. string.format("%.2f", endTime - startTime) .. "ms")
 
     SummaryFrame:Show()
 end
