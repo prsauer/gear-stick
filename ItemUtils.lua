@@ -159,8 +159,8 @@ function GST_ItemUtils.GetItemStatsShort(itemLink)
             end
         end
     end
-    print("Error looking up item stats for " .. itemLink)
-    return nil
+    GST_LogDebug("Error looking up item stats for " .. itemLink)
+    return ""
 end
 
 -- Get complete item info for a slot
