@@ -1,16 +1,46 @@
 GST_Summary = {}
 
+-- Static layout configuration
+local layout = {
+    startY = -172,      -- Starting Y position (adjusted for spec dropdown + additional checkbox + 4px margin)
+    slotHeight = 48,    -- Height of each slot frame (matches icon size)
+    slotSpacing = 8,    -- Spacing between slots (increased for better visual separation)
+    columnWidth = 94,   -- Width of each slot (4px wider)
+    leftColumnX = 8,    -- X position for left column (8px margin)
+    rightColumnX = 112, -- X position for right column (8px + 94px + 10px gap)
+    rowSpacing = 15     -- Extra spacing between different row types (increased)
+}
+
+-- Static slot order configuration
+local slotOrder = {
+    -- Left column: HEAD, NECK, SHOULDER, BACK, CHEST, WRIST
+    { 1,  2, 3, 15, 5,  9 },  -- Left column slots
+    -- Right column: HANDS, WAIST, LEGS, FEET, RING1, RING2
+    { 10, 6, 7, 8,  11, 12 }, -- Right column slots
+    -- Bottom row: TRINKET_1, TRINKET_2
+    { 13, 14 },               -- Trinkets row
+    -- Weapons row: MAIN_HAND, OFF_HAND
+    { 16, 17 }                -- Weapons row
+}
+
+-- Static slot IDs (all 17 slots in order)
+local allSlotIds = { 1, 2, 3, 15, 5, 9, 10, 6, 7, 8, 11, 12, 13, 14, 16, 17 }
+
+-- Static slot types for enchants (mapped to slot IDs)
+local allSlotTypes = { "HEAD", "NECK", "SHOULDER", "BACK", "CHEST", "WRIST", "HANDS", "WAIST", "LEGS", "FEET",
+    "FINGER", "FINGER", "TRINKET", "TRINKET", "MAINHAND", "OFFHAND" }
+
 -- Helper function to get gear popularity for a specific slot and item
 local function GetGearPopularity(specId, slotType, itemID, bracket, slotID, equippedStatsShort)
     -- Use the slot-based database for more accurate matching
     if GSTSlotGearDb and itemID then
         local bestMatch = nil
 
-        for _, item in ipairs(GSTSlotGearDb) do
-            if item.slotId == slotID and
-                item.specId == specId and
-                item.bracket == bracket and
-                item.itemId == itemID then
+        -- Use the indexed lookup to get matching items
+        local slotItems = SlotGearIndexes.LookupBySlotSpecBracket(slotID, specId, bracket)
+
+        for _, item in ipairs(slotItems) do
+            if item.itemId == itemID then
                 -- Check if stats match (for items with stat variants)
                 if equippedStatsShort and item.statsShort then
                     if equippedStatsShort == item.statsShort then
@@ -65,25 +95,23 @@ end
 local function HasEnchantDataForSlot(specId, slotType, bracket)
     if not GSTEnchantsDb then return false end
 
-    for _, enchant in ipairs(GSTEnchantsDb) do
-        if enchant.specId == specId and
-            enchant.slotType == slotType and
-            enchant.bracket == bracket then
-            return true
-        end
-    end
-    return false
+    -- Use the indexed lookup to get matching enchants
+    local enchants = EnchantsIndexes.LookupBySpecSlotBracket(specId, slotType, bracket)
+
+    -- Return true if there are any enchants for this slot/spec/bracket combination
+    return #enchants > 0
 end
 
 -- Helper function to get enchant popularity
 local function GetEnchantPopularity(specId, slotType, enchantID, bracket)
     if not GSTEnchantsDb or not enchantID then return nil end
 
-    for _, enchant in ipairs(GSTEnchantsDb) do
-        if enchant.specId == specId and
-            enchant.slotType == slotType and
-            enchant.enchantId == enchantID and
-            enchant.bracket == bracket then
+    -- Use the indexed lookup to get matching enchants
+    local enchants = EnchantsIndexes.LookupBySpecSlotBracket(specId, slotType, bracket)
+
+    -- Find the specific enchant by enchantID
+    for _, enchant in ipairs(enchants) do
+        if enchant.enchantId == enchantID then
             return {
                 rank = enchant.rank,
                 percent = enchant.percent,
@@ -130,10 +158,11 @@ local function GetProfileCount(specId, bracket)
 end
 
 
-
--- Helper function to check if a slot is "healthy"
-local function IsSlotHealthy(slotID, specID, selectedBracket)
+-- Helper function to check if a slot is "healthy" (optimized version using pre-loaded data)
+local function IsSlotHealthyWithData(slotID, specID, selectedBracket, cachedGearData, cachedEnchantData)
+    GST_TimerStart("GetSlotItemInfo")
     local itemInfo = GST_ItemUtils.GetSlotItemInfo(slotID)
+    GST_TimerStop("GetSlotItemInfo")
     if not itemInfo then
         return false -- No item = not healthy
     end
@@ -147,16 +176,8 @@ local function IsSlotHealthy(slotID, specID, selectedBracket)
     local isRank2Pick = false
     local rank2Percent = 0
 
-    if GSTSlotGearDb and itemID then
-        -- Find the top 2 items for this slot/spec/bracket
-        local topItems = {}
-        for _, item in ipairs(GSTSlotGearDb) do
-            if item.slotId == slotID and
-                item.specId == specID and
-                item.bracket == selectedBracket then
-                table.insert(topItems, item)
-            end
-        end
+    if cachedGearData and cachedGearData[slotID] and itemID then
+        local topItems = cachedGearData[slotID]
 
         -- Sort by rank
         table.sort(topItems, function(a, b) return a.rank < b.rank end)
@@ -200,6 +221,7 @@ local function IsSlotHealthy(slotID, specID, selectedBracket)
         -- If not a top pick, check the old >50% rule
         local gearInfo = GetGearPopularity(specID, slotType, itemID, selectedBracket, slotID,
             itemInfo and itemInfo.statsShort)
+
         local gearPercent = gearInfo and gearInfo.percent or 0
         gearIsHealthy = (gearPercent > 50)
     end
@@ -210,7 +232,8 @@ local function IsSlotHealthy(slotID, specID, selectedBracket)
     end
 
     -- Check enchant criteria
-    local hasEnchantData = slotType and HasEnchantDataForSlot(specID, slotType, selectedBracket)
+    local hasEnchantData = slotType and cachedEnchantData and cachedEnchantData[slotType] and
+        #cachedEnchantData[slotType] > 0
 
     if not hasEnchantData then
         -- No enchant data exists for this slot, so unenchanted is fine
@@ -224,16 +247,14 @@ local function IsSlotHealthy(slotID, specID, selectedBracket)
 
     -- Check enchant popularity (must be >50% OR be the #1 enchant choice)
     local isTopEnchant = false
-    if GSTEnchantsDb then
-        -- Find the top enchant for this slot/spec/bracket
+    if cachedEnchantData and cachedEnchantData[slotType] then
+        local enchants = cachedEnchantData[slotType]
+
+        -- Find the top enchant (rank 1)
         local topEnchant = nil
-        for _, enchant in ipairs(GSTEnchantsDb) do
-            if enchant.specId == specID and
-                enchant.slotType == slotType and
-                enchant.bracket == selectedBracket then
-                if not topEnchant or enchant.rank < topEnchant.rank then
-                    topEnchant = enchant
-                end
+        for _, enchant in ipairs(enchants) do
+            if not topEnchant or enchant.rank < topEnchant.rank then
+                topEnchant = enchant
             end
         end
 
@@ -252,6 +273,8 @@ local function IsSlotHealthy(slotID, specID, selectedBracket)
 end
 
 local function ShowSummary()
+    local startTime = debugprofilestop()
+
     -- Create the main frame if it doesn't exist
     if not SummaryFrame then
         local frame = CreateFrame("Frame", "SummaryFrame", UIParent, "BackdropTemplate")
@@ -321,6 +344,7 @@ local function ShowSummary()
     end
 
     -- Get current spec info
+    local specStartTime = debugprofilestop()
     local currentSpec = GetSpecialization()
     local currentSpecID = currentSpec and select(1, GetSpecializationInfo(currentSpec)) or nil
     local _, _, currentClassID = UnitClass("player")
@@ -329,8 +353,11 @@ local function ShowSummary()
         print("No specialization selected")
         return
     end
+    local specEndTime = debugprofilestop()
+    GST_LogProfiling("Spec info retrieval took " .. string.format("%.2f", specEndTime - specStartTime) .. "ms")
 
     -- Create spec dropdown if it doesn't exist
+    local dropdownStartTime = debugprofilestop()
     if not SummaryFrame.specDropdown then
         local dropdown = CreateFrame("Frame", "GSTSummarySpecDropdown", SummaryFrame.controlContainer,
             "UIDropDownMenuTemplate")
@@ -362,8 +389,11 @@ local function ShowSummary()
             end
         end
     end
+    local dropdownEndTime = debugprofilestop()
+    GST_LogProfiling("Spec dropdown setup took " .. string.format("%.2f", dropdownEndTime - dropdownStartTime) .. "ms")
 
     -- Set default spec if not set (use current spec)
+    local specSetupStartTime = debugprofilestop()
     if not UIDropDownMenu_GetSelectedValue(SummaryFrame.specDropdown) then
         UIDropDownMenu_SetSelectedValue(SummaryFrame.specDropdown, currentSpecID)
         local _, specName = GetSpecializationInfoForClassID(currentClassID, currentSpec)
@@ -382,11 +412,14 @@ local function ShowSummary()
         end
     end
     UIDropDownMenu_JustifyText(SummaryFrame.specDropdown, "LEFT")
+    local specSetupEndTime = debugprofilestop()
+    GST_LogProfiling("Spec dropdown setup took " .. string.format("%.2f", specSetupEndTime - specSetupStartTime) .. "ms")
 
     -- Get selected spec ID
     local selectedSpecID = UIDropDownMenu_GetSelectedValue(SummaryFrame.specDropdown)
 
     -- Create bracket dropdown if it doesn't exist
+    local bracketDropdownStartTime = debugprofilestop()
     if not SummaryFrame.bracketDropdown then
         local dropdown = CreateFrame("Frame", "GSTSummaryBracketDropdown", SummaryFrame.controlContainer,
             "UIDropDownMenuTemplate")
@@ -433,8 +466,12 @@ local function ShowSummary()
             end
         end
     end
+    local bracketDropdownEndTime = debugprofilestop()
+    GST_LogProfiling("Bracket dropdown setup took " ..
+        string.format("%.2f", bracketDropdownEndTime - bracketDropdownStartTime) .. "ms")
 
     -- Check if current bracket selection is valid for the selected spec
+    local bracketValidationStartTime = debugprofilestop()
     local currentBracket = UIDropDownMenu_GetSelectedValue(SummaryFrame.bracketDropdown)
     local validBrackets = { "pve", "2v2", "3v3" }
     local hasSoloShuffle = false
@@ -488,8 +525,12 @@ local function ShowSummary()
         UIDropDownMenu_SetText(SummaryFrame.bracketDropdown, displayText)
     end
     UIDropDownMenu_JustifyText(SummaryFrame.bracketDropdown, "LEFT")
+    local bracketValidationEndTime = debugprofilestop()
+    GST_LogProfiling("Bracket validation took " ..
+        string.format("%.2f", bracketValidationEndTime - bracketValidationStartTime) .. "ms")
 
     -- Create "Hide healthy slots" checkbox if it doesn't exist
+    local checkboxStartTime = debugprofilestop()
     if not SummaryFrame.hideHealthyCheckbox then
         local checkbox = CreateFrame("CheckButton", nil, SummaryFrame.controlContainer, "UICheckButtonTemplate")
         checkbox:SetPoint("TOPLEFT", SummaryFrame.controlContainer, "TOPLEFT", 0, -95)
@@ -530,12 +571,15 @@ local function ShowSummary()
 
         SummaryFrame.showRankCheckbox = checkbox
     end
+    local checkboxEndTime = debugprofilestop()
+    GST_LogProfiling("Checkbox setup took " .. string.format("%.2f", checkboxEndTime - checkboxStartTime) .. "ms")
 
     local selectedBracket = UIDropDownMenu_GetSelectedValue(SummaryFrame.bracketDropdown)
     local hideHealthy = SummaryFrame.hideHealthyCheckbox:GetChecked()
     local showRank = SummaryFrame.showRankCheckbox:GetChecked()
 
     -- Clear existing slot frames
+    local clearStartTime = debugprofilestop()
     if SummaryFrame.slotFrames then
         for _, slotFrame in pairs(SummaryFrame.slotFrames) do
             slotFrame:Hide()
@@ -543,49 +587,50 @@ local function ShowSummary()
         end
     end
     SummaryFrame.slotFrames = {}
-
-    -- Define slot order and layout configuration
-    local slotOrder = {
-        -- Left column: HEAD, NECK, SHOULDER, BACK, CHEST, WRIST
-        { 1,  2, 3, 15, 5,  9 },  -- Left column slots
-        -- Right column: HANDS, WAIST, LEGS, FEET, RING1, RING2
-        { 10, 6, 7, 8,  11, 12 }, -- Right column slots
-        -- Bottom row: TRINKET_1, TRINKET_2
-        { 13, 14 },               -- Trinkets row
-        -- Weapons row: MAIN_HAND, OFF_HAND
-        { 16, 17 }                -- Weapons row
-    }
-
-    -- Layout configuration
-    local layout = {
-        startY = -172,      -- Starting Y position (adjusted for spec dropdown + additional checkbox + 4px margin)
-        slotHeight = 48,    -- Height of each slot frame (matches icon size)
-        slotSpacing = 8,    -- Spacing between slots (increased for better visual separation)
-        columnWidth = 94,   -- Width of each slot (4px wider)
-        leftColumnX = 8,    -- X position for left column (8px margin)
-        rightColumnX = 112, -- X position for right column (8px + 94px + 10px gap)
-        rowSpacing = 15     -- Extra spacing between different row types (increased)
-    }
-
-
+    local clearEndTime = debugprofilestop()
+    GST_LogProfiling("Clearing existing frames took " .. string.format("%.2f", clearEndTime - clearStartTime) .. "ms")
 
     -- Use shared slot mapping from ItemUtils
 
+    -- Pre-load all gear and enchant data for batching
+    local batchDataStartTime = debugprofilestop()
+
+    -- Batch load all gear data
+    local cachedGearData = SlotGearIndexes.BatchLookupBySlots(selectedSpecID, selectedBracket, allSlotIds)
+
+    -- Batch load all enchant data
+    local cachedEnchantData = EnchantsIndexes.BatchLookupBySlotTypes(selectedSpecID, selectedBracket, allSlotTypes)
+
+    local batchDataEndTime = debugprofilestop()
+    GST_LogProfiling("Batch data loading took " .. string.format("%.2f", batchDataEndTime - batchDataStartTime) .. "ms")
+
     -- Create slot frames with dynamic flow layout
+    local slotCreationStartTime = debugprofilestop()
     local currentY = { layout.startY, layout.startY } -- Track Y position for left and right columns
 
     for rowIndex, rowSlots in ipairs(slotOrder) do
         local visibleSlotsInRow = {}
 
         -- First pass: determine which slots in this row should be visible
+        local firstPassStartTime = debugprofilestop()
         for _, slotID in ipairs(rowSlots) do
-            local isHealthy = IsSlotHealthy(slotID, selectedSpecID, selectedBracket)
+            local isHealthyStartTime = debugprofilestop()
+            local isHealthy = IsSlotHealthyWithData(slotID, selectedSpecID, selectedBracket, cachedGearData,
+                cachedEnchantData)
+            local isHealthyEndTime = debugprofilestop()
+            GST_LogProfiling(string.format("Slot %d - IsSlotHealthy: %.3fms", slotID,
+                isHealthyEndTime - isHealthyStartTime))
+
             if not (hideHealthy and isHealthy) then
                 table.insert(visibleSlotsInRow, slotID)
             end
         end
+        local firstPassEndTime = debugprofilestop()
+        GST_LogProfiling(string.format("Row %d - First pass (IsSlotHealthy calls): %.3fms", rowIndex,
+            firstPassEndTime - firstPassStartTime))
 
         -- Second pass: position the visible slots
+        local secondPassStartTime = debugprofilestop()
         for index, slotID in ipairs(visibleSlotsInRow) do
             local slotFrame = CreateFrame("Frame", nil, SummaryFrame, "BackdropTemplate")
             slotFrame:SetSize(layout.columnWidth, layout.slotHeight)
@@ -838,16 +883,9 @@ local function ShowSummary()
                     GameTooltip:AddLine("Top Gear Choices:", 0.2, 1, 0.2)
 
                     -- Find items for this slot from the new database
-                    local slotItems = {}
-                    for _, item in ipairs(GSTSlotGearDb) do
-                        if item.slotId == slotID and
-                            item.specId == selectedSpecID and
-                            item.bracket == selectedBracket then
-                            table.insert(slotItems, item)
-                        end
-                    end
+                    local slotItems = SlotGearIndexes.LookupBySlotSpecBracket(slotID, selectedSpecID, selectedBracket)
 
-                    -- Sort by rank (should already be sorted, but just in case)
+                    -- Sort by rank
                     table.sort(slotItems, function(a, b) return a.rank < b.rank end)
 
                     -- Check if player's equipped item matches any item in the distribution
@@ -890,7 +928,7 @@ local function ShowSummary()
                     if tooltipHasItem and not playerItemMatchesDistribution then
                         GameTooltip:AddLine(" ", 1, 1, 1) -- Spacer
                         local statsDisplay = tooltipItemInfo.statsShort and tooltipItemInfo.statsShort ~= "" and
-                            (" (" .. tooltipItemInfo.statsShortPretty .. ")") or ""
+                            tooltipItemInfo.statsShortPretty and (" (" .. tooltipItemInfo.statsShortPretty .. ")") or ""
                         GameTooltip:AddLine("You: " .. tooltipItemInfo.link .. statsDisplay, 1, 1, 0) -- Yellow color for equipped item
                     end
 
@@ -907,14 +945,9 @@ local function ShowSummary()
                 local tooltipSlotType = tooltipItemInfo and tooltipItemInfo.slotName
                 local tooltipEnchantID = tooltipItemInfo and tooltipItemInfo.enchantID
                 if tooltipSlotType and GSTEnchantsDb then
-                    local enchants = {}
-                    for _, enchant in ipairs(GSTEnchantsDb) do
-                        if enchant.specId == selectedSpecID and
-                            enchant.slotType == tooltipSlotType and
-                            enchant.bracket == selectedBracket then
-                            table.insert(enchants, enchant)
-                        end
-                    end
+                    -- Use the indexed lookup to get matching enchants
+                    local enchants = EnchantsIndexes.LookupBySpecSlotBracket(selectedSpecID, tooltipSlotType,
+                        selectedBracket)
 
                     -- Only show enchant section if there are enchants to display
                     if #enchants > 0 then
@@ -946,7 +979,14 @@ local function ShowSummary()
 
             table.insert(SummaryFrame.slotFrames, slotFrame)
         end
+        local secondPassEndTime = debugprofilestop()
+        GST_LogProfiling(string.format("Row %d - Second pass (frame creation): %.3fms", rowIndex,
+            secondPassEndTime - secondPassStartTime))
     end
+
+    local slotCreationEndTime = debugprofilestop()
+    GST_LogProfiling("Slot frame creation took " ..
+        string.format("%.2f", slotCreationEndTime - slotCreationStartTime) .. "ms")
 
     -- Automatically resize frame to fit content
     local finalY = math.min(currentY[1], currentY[2])
@@ -971,6 +1011,9 @@ local function ShowSummary()
             SummaryFrame.profileCount:SetText("Profile count unavailable")
         end
     end
+
+    local endTime = debugprofilestop()
+    GST_LogProfiling("ShowSummary total execution time: " .. string.format("%.2f", endTime - startTime) .. "ms")
 
     SummaryFrame:Show()
 end

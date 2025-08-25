@@ -111,14 +111,8 @@ end
 function GST_BracketUtils.GetGearRank(slotID, currentSpecID, selectedBracket, itemID, statsShort)
     if not GSTSlotGearDb or not itemID then return nil end
 
-    local slotItems = {}
-    for _, item in ipairs(GSTSlotGearDb) do
-        if item.slotId == slotID and
-            item.specId == currentSpecID and
-            item.bracket == selectedBracket then
-            table.insert(slotItems, item)
-        end
-    end
+    -- Use the indexed lookup to get matching items
+    local slotItems = SlotGearIndexes.LookupBySlotSpecBracket(slotID, currentSpecID, selectedBracket)
 
     -- Sort by rank
     table.sort(slotItems, function(a, b) return a.rank < b.rank end)
@@ -140,14 +134,8 @@ end
 function GST_BracketUtils.GetEnchantRank(currentSpecID, slotType, selectedBracket, enchantID)
     if not GSTEnchantsDb or not enchantID then return nil end
 
-    local enchants = {}
-    for _, enchant in ipairs(GSTEnchantsDb) do
-        if enchant.specId == currentSpecID and
-            enchant.slotType == slotType and
-            enchant.bracket == selectedBracket then
-            table.insert(enchants, enchant)
-        end
-    end
+    -- Use the indexed lookup to get matching enchants
+    local enchants = EnchantsIndexes.LookupBySpecSlotBracket(currentSpecID, slotType, selectedBracket)
 
     -- Sort by rank
     table.sort(enchants, function(a, b) return a.rank < b.rank end)
