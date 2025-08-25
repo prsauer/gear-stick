@@ -188,13 +188,41 @@ frame:RegisterEvent("COMBAT_RATING_UPDATE");          -- Fired when player stats
 
 function frame:OnEvent(event, arg1, arg2)
 	if event == "ADDON_LOADED" and arg1 == "GearStick" then
+		local addonLoadStart = debugprofilestop()
+
+		-- Initialize SlotGearIndexes
+		local indexStart = debugprofilestop()
 		SlotGearIndexes.InitializeIndex()
+		local indexEnd = debugprofilestop()
+		local indexTime = indexEnd - indexStart
+
+		-- Initialize settings
+		local settingsStart = debugprofilestop()
 		if GearStickSettings == nil then
 			GearStickSettings = {};
 		end
+		local settingsEnd = debugprofilestop()
+		local settingsTime = settingsEnd - settingsStart
+
+		-- Check for news updates
+		local newsStart = debugprofilestop()
 		local lastSeen = GearStickSettings["lastNewsNumber"] or 0
 		if newsNumber > lastSeen then
 			msgFrame:Show()
+		end
+		local newsEnd = debugprofilestop()
+		local newsTime = newsEnd - newsStart
+
+		-- Total addon load time
+		local addonLoadEnd = debugprofilestop()
+		local totalTime = addonLoadEnd - addonLoadStart
+
+		-- Only print timing info if debug is enabled
+		if GearStickSettings["debug"] then
+			print("GearStick: SlotGearIndexes initialized in " .. string.format("%.2f", indexTime) .. "ms")
+			print("GearStick: Settings initialized in " .. string.format("%.2f", settingsTime) .. "ms")
+			print("GearStick: News check completed in " .. string.format("%.2f", newsTime) .. "ms")
+			print("GearStick: Total addon load time: " .. string.format("%.2f", totalTime) .. "ms")
 		end
 	elseif event == "PLAYER_SPECIALIZATION_CHANGED" then
 		-- Update UI components when spec changes
