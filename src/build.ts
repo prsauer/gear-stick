@@ -181,7 +181,7 @@ function sanitizeItemName(name: string) {
   return name.replace(/"/g, '\\"');
 }
 
-function getStatsTag(item: Histo) {
+function getStatsTag(item: Histo, rename: boolean = true) {
   // get secondaries
   // return (Haste-Mastery) or similar:
   const secondaryStats = [
@@ -200,7 +200,7 @@ function getStatsTag(item: Histo) {
     ? item.item.stats
         .filter((s) => secondaryStats.includes(s.type?.type))
         .sort((a, b) => (b.value || 0) - (a.value || 0))
-        .map((s) => niceNameMap[s.type!.type])
+        .map((s) => (rename ? niceNameMap[s.type!.type] : s.type.type))
         .join("-")
     : "";
   return stats;
@@ -618,30 +618,7 @@ async function compileSlotBasedGear(
                   .join("/")
               : "";
             const shortStatsInfo = item.item.stats
-              ? item.item.stats
-                  .map((s) => {
-                    const statType = s.type?.name || s.type;
-                    return statType;
-                  })
-                  .filter((stat) => {
-                    const statName =
-                      typeof stat === "string"
-                        ? stat
-                        : (stat as any)?.name || String(stat);
-                    return statName && !primaryStats.includes(statName);
-                  })
-                  .map((statType) => {
-                    // Convert to shorter names
-                    return typeof statType === "string"
-                      ? statType
-                          .replace("Critical Strike", "Crit")
-                          .replace("Versatility", "Vers")
-                          .replace("Mastery", "Mast")
-                          .replace("Haste", "Haste")
-                      : String(statType);
-                  })
-                  .filter(Boolean)
-                  .join("/")
+              ? getStatsTag(item, false)
               : "";
 
             lines += `    ["stats"] = "${statsInfo}",\n`;
@@ -657,43 +634,6 @@ async function compileSlotBasedGear(
   }
 
   lines += "};\n\n";
-
-  // Add helper functions for working with stat variants
-  lines += `-- Helper functions for slot gear database\n`;
-  lines += `GSTSlotGearHelpers = {}\n\n`;
-
-  lines += `-- Get items for a specific slot/spec/bracket\n`;
-  lines += `function GSTSlotGearHelpers.GetSlotItems(slotId, specId, bracket)\n`;
-  lines += `    local items = {}\n`;
-  lines += `    for _, item in ipairs(GSTSlotGearDb) do\n`;
-  lines += `        if item.slotId == slotId and item.specId == specId and item.bracket == bracket then\n`;
-  lines += `            table.insert(items, item)\n`;
-  lines += `        end\n`;
-  lines += `    end\n`;
-  lines += `    table.sort(items, function(a, b) return a.rank < b.rank end)\n`;
-  lines += `    return items\n`;
-  lines += `end\n\n`;
-
-  lines += `-- Find best matching variant for equipped item\n`;
-  lines += `function GSTSlotGearHelpers.FindBestMatch(equippedItemId, slotItems)\n`;
-  lines += `    -- First try exact itemId match\n`;
-  lines += `    for _, item in ipairs(slotItems) do\n`;
-  lines += `        if item.itemId == equippedItemId then\n`;
-  lines += `            return item\n`;
-  lines += `        end\n`;
-  lines += `    end\n`;
-  lines += `    return nil\n`;
-  lines += `end\n\n`;
-
-  lines += `-- Format item display with stats\n`;
-  lines += `function GSTSlotGearHelpers.FormatItemDisplay(item)\n`;
-  lines += `    local statsText = ""\n`;
-  lines += `    if item.statsShort and item.statsShort ~= "" then\n`;
-  lines += `        statsText = " (" .. item.statsShort .. ")"\n`;
-  lines += `    end\n`;
-  lines += `    local bisText = item.rank == 1 and " (BiS)" or ""\n`;
-  lines += `    return string.format("%.1f%% - %s%s%s", item.percent, item.itemName, statsText, bisText)\n`;
-  lines += `end\n\n`;
 
   const fout = openSync(join(outputFolder, fileName), "w");
   writeFileSync(fout, lines);
