@@ -134,14 +134,8 @@ end
 function GST_BracketUtils.GetEnchantRank(currentSpecID, slotType, selectedBracket, enchantID)
     if not GSTEnchantsDb or not enchantID then return nil end
 
-    local enchants = {}
-    for _, enchant in ipairs(GSTEnchantsDb) do
-        if enchant.specId == currentSpecID and
-            enchant.slotType == slotType and
-            enchant.bracket == selectedBracket then
-            table.insert(enchants, enchant)
-        end
-    end
+    -- Use the indexed lookup to get matching enchants
+    local enchants = EnchantsIndexes.LookupBySpecSlotBracket(currentSpecID, slotType, selectedBracket)
 
     -- Sort by rank
     table.sort(enchants, function(a, b) return a.rank < b.rank end)

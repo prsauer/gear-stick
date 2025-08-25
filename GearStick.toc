@@ -50,9 +50,10 @@ Gearingshuffle_warrior_fury.lua
 Gearingshuffle_warrior_protection.lua
 SlotGear.lua
 SlotGearIndexes.lua
+Enchants.lua
+EnchantsIndexes.lua
 BracketUtils.lua
 Loadouts.lua
-Enchants.lua
 ItemUtils.lua
 Talents.lua
 EnchantsUI.lua

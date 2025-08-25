@@ -18,9 +18,10 @@ for file in $(find . -name "Gearing*.lua" -o -name "shuffle-*.lua"); do
 done
 echo "SlotGear.lua" >> GearStick.toc
 echo "SlotGearIndexes.lua" >> GearStick.toc
+echo "Enchants.lua" >> GearStick.toc
+echo "EnchantsIndexes.lua" >> GearStick.toc
 echo "BracketUtils.lua" >> GearStick.toc
 echo "Loadouts.lua" >> GearStick.toc
-echo "Enchants.lua" >> GearStick.toc
 echo "ItemUtils.lua" >> GearStick.toc
 echo "Talents.lua" >> GearStick.toc
 echo "EnchantsUI.lua" >> GearStick.toc

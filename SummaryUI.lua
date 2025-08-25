@@ -65,25 +65,23 @@ end
 local function HasEnchantDataForSlot(specId, slotType, bracket)
     if not GSTEnchantsDb then return false end
 
-    for _, enchant in ipairs(GSTEnchantsDb) do
-        if enchant.specId == specId and
-            enchant.slotType == slotType and
-            enchant.bracket == bracket then
-            return true
-        end
-    end
-    return false
+    -- Use the indexed lookup to get matching enchants
+    local enchants = EnchantsIndexes.LookupBySpecSlotBracket(specId, slotType, bracket)
+
+    -- Return true if there are any enchants for this slot/spec/bracket combination
+    return #enchants > 0
 end
 
 -- Helper function to get enchant popularity
 local function GetEnchantPopularity(specId, slotType, enchantID, bracket)
     if not GSTEnchantsDb or not enchantID then return nil end
 
-    for _, enchant in ipairs(GSTEnchantsDb) do
-        if enchant.specId == specId and
-            enchant.slotType == slotType and
-            enchant.enchantId == enchantID and
-            enchant.bracket == bracket then
+    -- Use the indexed lookup to get matching enchants
+    local enchants = EnchantsIndexes.LookupBySpecSlotBracket(specId, slotType, bracket)
+
+    -- Find the specific enchant by enchantID
+    for _, enchant in ipairs(enchants) do
+        if enchant.enchantId == enchantID then
             return {
                 rank = enchant.rank,
                 percent = enchant.percent,
@@ -218,15 +216,14 @@ local function IsSlotHealthy(slotID, specID, selectedBracket)
     -- Check enchant popularity (must be >50% OR be the #1 enchant choice)
     local isTopEnchant = false
     if GSTEnchantsDb then
-        -- Find the top enchant for this slot/spec/bracket
+        -- Use the indexed lookup to get matching enchants
+        local enchants = EnchantsIndexes.LookupBySpecSlotBracket(specID, slotType, selectedBracket)
+
+        -- Find the top enchant (rank 1)
         local topEnchant = nil
-        for _, enchant in ipairs(GSTEnchantsDb) do
-            if enchant.specId == specID and
-                enchant.slotType == slotType and
-                enchant.bracket == selectedBracket then
-                if not topEnchant or enchant.rank < topEnchant.rank then
-                    topEnchant = enchant
-                end
+        for _, enchant in ipairs(enchants) do
+            if not topEnchant or enchant.rank < topEnchant.rank then
+                topEnchant = enchant
             end
         end
 
@@ -893,14 +890,9 @@ local function ShowSummary()
                 local tooltipSlotType = tooltipItemInfo and tooltipItemInfo.slotName
                 local tooltipEnchantID = tooltipItemInfo and tooltipItemInfo.enchantID
                 if tooltipSlotType and GSTEnchantsDb then
-                    local enchants = {}
-                    for _, enchant in ipairs(GSTEnchantsDb) do
-                        if enchant.specId == selectedSpecID and
-                            enchant.slotType == tooltipSlotType and
-                            enchant.bracket == selectedBracket then
-                            table.insert(enchants, enchant)
-                        end
-                    end
+                    -- Use the indexed lookup to get matching enchants
+                    local enchants = EnchantsIndexes.LookupBySpecSlotBracket(selectedSpecID, tooltipSlotType,
+                        selectedBracket)
 
                     -- Only show enchant section if there are enchants to display
                     if #enchants > 0 then

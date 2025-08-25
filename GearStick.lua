@@ -196,6 +196,12 @@ function frame:OnEvent(event, arg1, arg2)
 		local indexEnd = debugprofilestop()
 		local indexTime = indexEnd - indexStart
 
+		-- Initialize EnchantsIndexes
+		local enchantsIndexStart = debugprofilestop()
+		EnchantsIndexes.InitializeIndex()
+		local enchantsIndexEnd = debugprofilestop()
+		local enchantsIndexTime = enchantsIndexEnd - enchantsIndexStart
+
 		-- Initialize settings
 		local settingsStart = debugprofilestop()
 		if GearStickSettings == nil then
@@ -220,11 +226,14 @@ function frame:OnEvent(event, arg1, arg2)
 		-- Only print timing info if debug is enabled
 		if GearStickSettings["debug"] then
 			print("GearStick: SlotGearIndexes initialized in " .. string.format("%.2f", indexTime) .. "ms")
+			print("GearStick: EnchantsIndexes initialized in " .. string.format("%.2f", enchantsIndexTime) .. "ms")
 			print("GearStick: Settings initialized in " .. string.format("%.2f", settingsTime) .. "ms")
 			print("GearStick: News check completed in " .. string.format("%.2f", newsTime) .. "ms")
 			print("GearStick: Total addon load time: " .. string.format("%.2f", totalTime) .. "ms")
 		end
 	elseif event == "PLAYER_SPECIALIZATION_CHANGED" then
+		local specChangeStart = debugprofilestop()
+
 		-- Update UI components when spec changes
 		-- arg1 is unit (should be "player")
 		-- arg2 is new spec ID
@@ -248,7 +257,15 @@ function frame:OnEvent(event, arg1, arg2)
 				GST_Enchants.RefreshIfVisible()
 			end
 		end
+
+		local specChangeEnd = debugprofilestop()
+		local specChangeTime = specChangeEnd - specChangeStart
+		if GearStickSettings["debug"] then
+			print("GearStick: Spec change handler completed in " .. string.format("%.2f", specChangeTime) .. "ms")
+		end
 	elseif event == "COMBAT_RATING_UPDATE" then
+		local combatRatingStart = debugprofilestop()
+
 		if GearStickSettings["debug"] then
 			print("GearStick: Combat ratings updated - recalculating gear recommendations")
 		end
@@ -264,6 +281,13 @@ function frame:OnEvent(event, arg1, arg2)
 		-- Update Enchants UI if it's currently shown
 		if GST_Enchants and GST_Enchants.RefreshIfVisible then
 			GST_Enchants.RefreshIfVisible()
+		end
+
+		local combatRatingEnd = debugprofilestop()
+		local combatRatingTime = combatRatingEnd - combatRatingStart
+		if GearStickSettings["debug"] then
+			print("GearStick: Combat rating update handler completed in " ..
+				string.format("%.2f", combatRatingTime) .. "ms")
 		end
 	end
 end
