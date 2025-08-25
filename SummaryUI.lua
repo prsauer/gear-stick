@@ -17,7 +17,7 @@ local function GetGearPopularity(specId, slotType, itemID, bracket, slotID, equi
                         -- Exact stats match
                         return {
                             percent = item.percent,
-                            isBis = item.isBis,
+                            isBis = item.rank == 1,
                             bisName = item.itemName
                         }
                     end
@@ -26,7 +26,7 @@ local function GetGearPopularity(specId, slotType, itemID, bracket, slotID, equi
                     if not bestMatch or item.percent > bestMatch.percent then
                         bestMatch = {
                             percent = item.percent,
-                            isBis = item.isBis,
+                            isBis = item.rank == 1,
                             bisName = item.itemName
                         }
                     end
@@ -53,7 +53,7 @@ local function GetGearPopularity(specId, slotType, itemID, bracket, slotID, equi
     if db[simpleKey] then
         return {
             percent = db[simpleKey][1],
-            isBis = db[simpleKey][2],
+            isBis = db[simpleKey][2] == 1,
             bisName = db[simpleKey][3]
         }
     end
@@ -875,7 +875,7 @@ local function ShowSummary()
                         local isEquipped = itemMatches and (not item.statsShort or item.statsShort == "" or statsMatch)
 
                         local color = isEquipped and "|cFF00FF00" or "|cFFFFFFFF"
-                        local bisText = item.isBis and " (BiS)" or ""
+                        local bisText = item.rank == 1 and " (BiS)" or ""
 
                         local statsDisplay = item.statsShort and item.statsShort ~= "" and
                             (" (" .. item.statsShort .. ")") or
