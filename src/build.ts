@@ -620,9 +620,11 @@ async function compileSlotBasedGear(
             const shortStatsInfo = item.item.stats
               ? getStatsTag(item, false)
               : "";
+            const statsShortPretty = item.item.stats ? getStatsTag(item) : "";
 
             lines += `    ["stats"] = "${statsInfo}",\n`;
             lines += `    ["statsShort"] = "${shortStatsInfo}",\n`;
+            lines += `    ["statsShortPretty"] = "${statsShortPretty}",\n`;
             lines += `    ["percent"] = ${item.percent.toFixed(1)},\n`;
             lines += `    ["rank"] = ${idx + 1},\n`;
 

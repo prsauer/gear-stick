@@ -878,7 +878,7 @@ local function ShowSummary()
                         local bisText = item.rank == 1 and " (BiS)" or ""
 
                         local statsDisplay = item.statsShort and item.statsShort ~= "" and
-                            (" (" .. item.statsShort .. ")") or
+                            (" (" .. item.statsShortPretty .. ")") or
                             ""
                         GameTooltip:AddLine(
                             string.format("%s%.1f%% - %s%s%s", color, item.percent, item.itemName, statsDisplay, bisText),
@@ -890,7 +890,7 @@ local function ShowSummary()
                     if tooltipHasItem and not playerItemMatchesDistribution then
                         GameTooltip:AddLine(" ", 1, 1, 1) -- Spacer
                         local statsDisplay = tooltipItemInfo.statsShort and tooltipItemInfo.statsShort ~= "" and
-                            (" (" .. tooltipItemInfo.statsShort .. ")") or ""
+                            (" (" .. tooltipItemInfo.statsShortPretty .. ")") or ""
                         GameTooltip:AddLine("You: " .. tooltipItemInfo.link .. statsDisplay, 1, 1, 0) -- Yellow color for equipped item
                     end
 
