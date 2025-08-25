@@ -49,5 +49,7 @@ local function debug(tbl, indent)
 end
 
 function GST_DebugTable(tbl)
-    debug(tbl, "")
+    if GearStickSettings and GearStickSettings["debug"] then
+        debug(tbl, "")
+    end
 end
