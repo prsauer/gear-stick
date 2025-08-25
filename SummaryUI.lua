@@ -149,14 +149,7 @@ local function IsSlotHealthy(slotID, specID, selectedBracket)
 
     if GSTSlotGearDb and itemID then
         -- Find the top 2 items for this slot/spec/bracket
-        local topItems = {}
-        for _, item in ipairs(GSTSlotGearDb) do
-            if item.slotId == slotID and
-                item.specId == specID and
-                item.bracket == selectedBracket then
-                table.insert(topItems, item)
-            end
-        end
+        local topItems = SlotGearIndexes.LookupBySlotSpecBracket(slotID, specID, selectedBracket)
 
         -- Sort by rank
         table.sort(topItems, function(a, b) return a.rank < b.rank end)
@@ -838,16 +831,9 @@ local function ShowSummary()
                     GameTooltip:AddLine("Top Gear Choices:", 0.2, 1, 0.2)
 
                     -- Find items for this slot from the new database
-                    local slotItems = {}
-                    for _, item in ipairs(GSTSlotGearDb) do
-                        if item.slotId == slotID and
-                            item.specId == selectedSpecID and
-                            item.bracket == selectedBracket then
-                            table.insert(slotItems, item)
-                        end
-                    end
+                    local slotItems = SlotGearIndexes.LookupBySlotSpecBracket(slotID, selectedSpecID, selectedBracket)
 
-                    -- Sort by rank (should already be sorted, but just in case)
+                    -- Sort by rank
                     table.sort(slotItems, function(a, b) return a.rank < b.rank end)
 
                     -- Check if player's equipped item matches any item in the distribution
@@ -890,7 +876,7 @@ local function ShowSummary()
                     if tooltipHasItem and not playerItemMatchesDistribution then
                         GameTooltip:AddLine(" ", 1, 1, 1) -- Spacer
                         local statsDisplay = tooltipItemInfo.statsShort and tooltipItemInfo.statsShort ~= "" and
-                            (" (" .. tooltipItemInfo.statsShortPretty .. ")") or ""
+                            tooltipItemInfo.statsShortPretty and (" (" .. tooltipItemInfo.statsShortPretty .. ")") or ""
                         GameTooltip:AddLine("You: " .. tooltipItemInfo.link .. statsDisplay, 1, 1, 0) -- Yellow color for equipped item
                     end
 
