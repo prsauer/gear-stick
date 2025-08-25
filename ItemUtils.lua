@@ -71,6 +71,55 @@ function GST_ItemUtils.HasItemInSlotByName(slotName)
     return GST_ItemUtils.HasItemInSlot(slotID)
 end
 
+-- Edits table in place with secondary stats from a line of text
+function GST_ItemUtils.ParseLineAndWriteSecondariesTable(text, tbl)
+    if (text ~= nil and string.sub(text, 1, 1) == "+") then
+        -- Extract stat value and type
+        local value, statType = nil, nil
+
+        if string.find(text, "%+.*Critical Strike") then
+            local captured = string.match(text, "%+(%d+,?%d*) Critical Strike")
+            value = tonumber((string.gsub(captured, ",", "")))
+            statType = "CRIT_RATING"
+        elseif string.find(text, "%+.*Haste") then
+            local captured = string.match(text, "%+([0-9,.]*) Haste")
+            value = tonumber((string.gsub(captured, ",", "")))
+            statType = "HASTE_RATING"
+        elseif string.find(text, "%+.*Mastery") then
+            local captured = string.match(text, "%+([0-9,.]*) Mastery")
+            value = tonumber((string.gsub(captured, ",", "")))
+            statType = "MASTERY_RATING"
+        elseif string.find(text, "%+.*Versatility") then
+            local captured = string.match(text, "%+(%d+,?%d*) Versatility")
+            value = tonumber((string.gsub(captured, ",", "")))
+            statType = "VERSATILITY"
+        end
+
+        if value and statType then
+            table.insert(tbl, { value = value, type = statType })
+        end
+    end
+    return tbl
+end
+
+-- Concats a table of secondary stats into a slug
+function GST_ItemUtils.ReduceSecondariesTableToSlug(tbl)
+    -- Sort by value (highest first)
+    table.sort(tbl, function(a, b) return a.value > b.value end)
+    -- debug(tbl)
+
+    -- Build result string
+    local rval = ""
+    for i, stat in ipairs(tbl) do
+        if i > 1 then
+            rval = rval .. "-"
+        end
+        rval = rval .. stat.type
+    end
+
+    return rval
+end
+
 -- Extract secondary stats from item link tooltip
 function GST_ItemUtils.GetItemStatsShort(itemLink)
     if not itemLink then return "" end
@@ -81,36 +130,15 @@ function GST_ItemUtils.GetItemStatsShort(itemLink)
     tooltip:SetHyperlink(itemLink)
 
     local stats = {}
-    local seenStats = {} -- Track which stats we've already seen
 
     -- Parse tooltip for secondary stats
     for i = 1, tooltip:NumLines() do
         local line = _G[tooltip:GetName() .. "TextLeft" .. i]
-        if line then
-            local text = line:GetText()
-            if text then
-                local statName = nil
-                if text:find("%+.*Critical Strike") then
-                    statName = "Crit"
-                elseif text:find("%+.*Versatility") then
-                    statName = "Vers"
-                elseif text:find("%+.*Haste") then
-                    statName = "Haste"
-                elseif text:find("%+.*Mastery") then
-                    statName = "Mast"
-                end
-
-                -- Only add the stat if we haven't seen it before
-                if statName and not seenStats[statName] then
-                    table.insert(stats, statName)
-                    seenStats[statName] = true
-                end
-            end
-        end
+        GST_ItemUtils.ParseLineAndWriteSecondariesTable(line:GetText(), stats)
     end
 
     tooltip:Hide()
-    return table.concat(stats, "/")
+    return GST_ItemUtils.ReduceSecondariesTableToSlug(stats)
 end
 
 -- Get complete item info for a slot
@@ -120,7 +148,6 @@ function GST_ItemUtils.GetSlotItemInfo(slotID)
 
     -- Get stats from item tooltip
     local statsShort = GST_ItemUtils.GetItemStatsShort(itemLink)
-
     return {
         link = itemLink,
         itemID = GST_ItemUtils.GetItemIDFromLink(itemLink),

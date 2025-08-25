@@ -77,49 +77,11 @@ local function GetStatsKeyFromTooltipHelper(...)
 		if region and region:GetObjectType() == "FontString" then
 			local text = region:GetText() -- string or nil
 			-- if first char is not +, skip line:
-			if (text ~= nil and string.sub(text, 1, 1) == "+") then
-				-- Extract stat value and type
-				local value, statType = nil, nil
-
-				if string.find(text, "%+.*Critical Strike") then
-					local captured = string.match(text, "%+(%d+,?%d*) Critical Strike")
-					value = tonumber((string.gsub(captured, ",", "")))
-					statType = "CRIT_RATING"
-				elseif string.find(text, "%+.*Haste") then
-					local captured = string.match(text, "%+([0-9,.]*) Haste")
-					value = tonumber((string.gsub(captured, ",", "")))
-					statType = "HASTE_RATING"
-				elseif string.find(text, "%+.*Mastery") then
-					local captured = string.match(text, "%+([0-9,.]*) Mastery")
-					value = tonumber((string.gsub(captured, ",", "")))
-					statType = "MASTERY_RATING"
-				elseif string.find(text, "%+.*Versatility") then
-					local captured = string.match(text, "%+(%d+,?%d*) Versatility")
-					value = tonumber((string.gsub(captured, ",", "")))
-					statType = "VERSATILITY"
-				end
-
-				if value and statType then
-					table.insert(stats, { value = value, type = statType })
-				end
-			end
+			GST_ItemUtils.ParseLineAndWriteSecondariesTable(text, stats)
 		end
 	end
 
-	-- Sort by value (highest first)
-	table.sort(stats, function(a, b) return a.value > b.value end)
-	-- debug(stats)
-
-	-- Build result string
-	local rval = ""
-	for i, stat in ipairs(stats) do
-		if i > 1 then
-			rval = rval .. "-"
-		end
-		rval = rval .. stat.type
-	end
-
-	return rval
+	return GST_ItemUtils.ReduceSecondariesTableToSlug(stats)
 end
 
 local function GetStatsKeyFromTooltip(tooltip)
@@ -160,6 +122,9 @@ local function writeTooltip(tooltip, itemID, currentSpecId)
 
 	if GearStickSettings["3v3"] then
 		if usageDb3v3[key] then
+			if GearStickSettings["debug"] then
+				print(key)
+			end
 			local choiceColor = "|cFFeeFF00"
 			local rankText = " (#" .. usageDb3v3[key][2] .. ")"
 			if usageDb3v3[key][2] == 1 then
@@ -184,6 +149,9 @@ local function writeTooltip(tooltip, itemID, currentSpecId)
 
 	if GearStickSettings["pve"] then
 		if usageDbPvE[key] then
+			if GearStickSettings["debug"] then
+				print(key)
+			end
 			local choiceColor = "|cFFeeFF00"
 			local rankText = " (#" .. usageDbPvE[key][2] .. ")"
 			if usageDbPvE[key][2] == 1 then
