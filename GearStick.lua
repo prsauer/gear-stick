@@ -56,17 +56,6 @@ button:SetScript("OnClick", function(self, button, down)
 	msgFrame:Hide()
 end)
 
-local function debug(tbl, indent)
-	indent = indent or ""
-	for key, value in pairs(tbl) do
-		if type(value) == "table" then
-			print(indent .. key .. ":")
-			debug(value, indent .. "  ")
-		else
-			print(indent .. key .. ": " .. tostring(value))
-		end
-	end
-end
 
 local function GetStatsKeyFromTooltipHelper(...)
 	-- Extract stats with their values and sort by value (highest first)

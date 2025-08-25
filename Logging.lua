@@ -31,7 +31,23 @@ function GST_TimerStop(name)
         if startTime then
             local endTime = debugprofilestop()
             local duration = endTime - startTime
-            print(string.format("|cFF00FF00[GearStick Profiling]|r %s: %.3fms", name, duration))
+            print(string.format("|cFF00FFFF[GearStick Profiling]|r %s: %.3fms", name, duration))
         end
     end
+end
+
+local function debug(tbl, indent)
+    indent = indent or ""
+    for key, value in pairs(tbl) do
+        if type(value) == "table" then
+            print(indent .. key .. ":")
+            debug(value, indent .. "  ")
+        else
+            print(indent .. key .. ": " .. tostring(value))
+        end
+    end
+end
+
+function GST_DebugTable(tbl)
+    debug(tbl, "")
 end

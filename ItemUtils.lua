@@ -120,33 +120,47 @@ function GST_ItemUtils.ReduceSecondariesTableToSlug(tbl)
     return rval
 end
 
--- Extract secondary stats from item link tooltip
+-- Extract secondary stats from item link using modern APIs
 function GST_ItemUtils.GetItemStatsShort(itemLink)
     if not itemLink then return "" end
 
-    GST_TimerStart("GetItemStatsShort.CreateFrame")
-    -- Create a temporary tooltip to read item stats
-    local tooltip = CreateFrame("GameTooltip", "GST_TempTooltip", nil, "GameTooltipTemplate")
-    tooltip:SetOwner(UIParent, "ANCHOR_NONE")
-    tooltip:SetHyperlink(itemLink)
-    GST_TimerStop("GetItemStatsShort.CreateFrame")
+    local itemID = GST_ItemUtils.GetItemIDFromLink(itemLink)
+    if not itemID then return "" end
 
-    local stats = {}
+    GST_TimerStart("GetItemStatsShort.GetItemStats")
 
-    GST_TimerStart("GetItemStatsShort.ParseTooltip")
-    -- Parse tooltip for secondary stats
-    for i = 1, tooltip:NumLines() do
-        local line = _G[tooltip:GetName() .. "TextLeft" .. i]
-        GST_ItemUtils.ParseLineAndWriteSecondariesTable(line:GetText(), stats)
+    -- Try modern API first: C_Item.GetItemStats
+    if C_Item and C_Item.GetItemStats then
+        local stats = C_Item.GetItemStats(itemLink)
+        GST_DebugTable(stats)
+        if stats then
+            local secondaryStats = {}
+
+            -- Extract secondary stats from the stats table
+            for statType, value in pairs(stats) do
+                if statType == "ITEM_MOD_CRIT_RATING_SHORT" or statType == "CRIT_RATING" then
+                    table.insert(secondaryStats, { value = value, type = "CRIT_RATING" })
+                elseif statType == "ITEM_MOD_HASTE_RATING_SHORT" or statType == "HASTE_RATING" then
+                    table.insert(secondaryStats, { value = value, type = "HASTE_RATING" })
+                elseif statType == "ITEM_MOD_MASTERY_RATING_SHORT" or statType == "MASTERY_RATING" then
+                    table.insert(secondaryStats, { value = value, type = "MASTERY_RATING" })
+                elseif statType == "ITEM_MOD_VERSATILITY" or statType == "VERSATILITY" then
+                    table.insert(secondaryStats, { value = value, type = "VERSATILITY" })
+                end
+            end
+
+            GST_TimerStop("GetItemStatsShort.GetItemStats")
+
+            if #secondaryStats > 0 then
+                GST_TimerStart("GetItemStatsShort.ReduceSecondariesTableToSlug")
+                local slug = GST_ItemUtils.ReduceSecondariesTableToSlug(secondaryStats)
+                GST_TimerStop("GetItemStatsShort.ReduceSecondariesTableToSlug")
+                return slug
+            end
+        end
     end
-    GST_TimerStop("GetItemStatsShort.ParseTooltip")
-
-    GST_TimerStart("GetItemStatsShort.ReduceSecondariesTableToSlug")
-    tooltip:Hide()
-    local slug = GST_ItemUtils.ReduceSecondariesTableToSlug(stats)
-    GST_TimerStop("GetItemStatsShort.ReduceSecondariesTableToSlug")
-
-    return slug
+    print("Error looking up item stats for " .. itemLink)
+    return nil
 end
 
 -- Get complete item info for a slot
