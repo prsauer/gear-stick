@@ -124,30 +124,42 @@ end
 function GST_ItemUtils.GetItemStatsShort(itemLink)
     if not itemLink then return "" end
 
+    GST_TimerStart("GetItemStatsShort.CreateFrame")
     -- Create a temporary tooltip to read item stats
     local tooltip = CreateFrame("GameTooltip", "GST_TempTooltip", nil, "GameTooltipTemplate")
     tooltip:SetOwner(UIParent, "ANCHOR_NONE")
     tooltip:SetHyperlink(itemLink)
+    GST_TimerStop("GetItemStatsShort.CreateFrame")
 
     local stats = {}
 
+    GST_TimerStart("GetItemStatsShort.ParseTooltip")
     -- Parse tooltip for secondary stats
     for i = 1, tooltip:NumLines() do
         local line = _G[tooltip:GetName() .. "TextLeft" .. i]
         GST_ItemUtils.ParseLineAndWriteSecondariesTable(line:GetText(), stats)
     end
+    GST_TimerStop("GetItemStatsShort.ParseTooltip")
 
+    GST_TimerStart("GetItemStatsShort.ReduceSecondariesTableToSlug")
     tooltip:Hide()
-    return GST_ItemUtils.ReduceSecondariesTableToSlug(stats)
+    local slug = GST_ItemUtils.ReduceSecondariesTableToSlug(stats)
+    GST_TimerStop("GetItemStatsShort.ReduceSecondariesTableToSlug")
+
+    return slug
 end
 
 -- Get complete item info for a slot
 function GST_ItemUtils.GetSlotItemInfo(slotID)
+    GST_TimerStart("GetInventoryItemLink")
     local itemLink = GetInventoryItemLink("player", slotID)
+    GST_TimerStop("GetInventoryItemLink")
     if not itemLink then return nil end
 
     -- Get stats from item tooltip
+    GST_TimerStart("GetItemStatsShort")
     local statsShort = GST_ItemUtils.GetItemStatsShort(itemLink)
+    GST_TimerStop("GetItemStatsShort")
     return {
         link = itemLink,
         itemID = GST_ItemUtils.GetItemIDFromLink(itemLink),

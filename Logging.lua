@@ -16,3 +16,22 @@ end
 function GST_LogUser(...)
     print("|cFF00AAFF[GearStick]|r", ...)
 end
+
+local profileTimers = {}
+
+function GST_TimerStart(name)
+    if GearStickSettings and GearStickSettings["profiling"] then
+        profileTimers[name] = debugprofilestop()
+    end
+end
+
+function GST_TimerStop(name)
+    if GearStickSettings and GearStickSettings["profiling"] then
+        local startTime = profileTimers[name]
+        if startTime then
+            local endTime = debugprofilestop()
+            local duration = endTime - startTime
+            print(string.format("|cFF00FF00[GearStick Profiling]|r %s: %.3fms", name, duration))
+        end
+    end
+end

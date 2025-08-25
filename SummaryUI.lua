@@ -1,5 +1,35 @@
 GST_Summary = {}
 
+-- Static layout configuration
+local layout = {
+    startY = -172,      -- Starting Y position (adjusted for spec dropdown + additional checkbox + 4px margin)
+    slotHeight = 48,    -- Height of each slot frame (matches icon size)
+    slotSpacing = 8,    -- Spacing between slots (increased for better visual separation)
+    columnWidth = 94,   -- Width of each slot (4px wider)
+    leftColumnX = 8,    -- X position for left column (8px margin)
+    rightColumnX = 112, -- X position for right column (8px + 94px + 10px gap)
+    rowSpacing = 15     -- Extra spacing between different row types (increased)
+}
+
+-- Static slot order configuration
+local slotOrder = {
+    -- Left column: HEAD, NECK, SHOULDER, BACK, CHEST, WRIST
+    { 1,  2, 3, 15, 5,  9 },  -- Left column slots
+    -- Right column: HANDS, WAIST, LEGS, FEET, RING1, RING2
+    { 10, 6, 7, 8,  11, 12 }, -- Right column slots
+    -- Bottom row: TRINKET_1, TRINKET_2
+    { 13, 14 },               -- Trinkets row
+    -- Weapons row: MAIN_HAND, OFF_HAND
+    { 16, 17 }                -- Weapons row
+}
+
+-- Static slot IDs (all 17 slots in order)
+local allSlotIds = { 1, 2, 3, 15, 5, 9, 10, 6, 7, 8, 11, 12, 13, 14, 16, 17 }
+
+-- Static slot types for enchants (mapped to slot IDs)
+local allSlotTypes = { "HEAD", "NECK", "SHOULDER", "BACK", "CHEST", "WRIST", "HANDS", "WAIST", "LEGS", "FEET",
+    "FINGER", "FINGER", "TRINKET", "TRINKET", "MAINHAND", "OFFHAND" }
+
 -- Helper function to get gear popularity for a specific slot and item
 local function GetGearPopularity(specId, slotType, itemID, bracket, slotID, equippedStatsShort)
     -- Use the slot-based database for more accurate matching
@@ -128,11 +158,11 @@ local function GetProfileCount(specId, bracket)
 end
 
 
-
--- Helper function to check if a slot is "healthy"
-local function IsSlotHealthy(slotID, specID, selectedBracket)
-    -- Initialize timing variables
+-- Helper function to check if a slot is "healthy" (optimized version using pre-loaded data)
+local function IsSlotHealthyWithData(slotID, specID, selectedBracket, cachedGearData, cachedEnchantData)
+    GST_TimerStart("GetSlotItemInfo")
     local itemInfo = GST_ItemUtils.GetSlotItemInfo(slotID)
+    GST_TimerStop("GetSlotItemInfo")
     if not itemInfo then
         return false -- No item = not healthy
     end
@@ -146,9 +176,8 @@ local function IsSlotHealthy(slotID, specID, selectedBracket)
     local isRank2Pick = false
     local rank2Percent = 0
 
-    if GSTSlotGearDb and itemID then
-        -- Find the top 2 items for this slot/spec/bracket
-        local topItems = SlotGearIndexes.LookupBySlotSpecBracket(slotID, specID, selectedBracket)
+    if cachedGearData and cachedGearData[slotID] and itemID then
+        local topItems = cachedGearData[slotID]
 
         -- Sort by rank
         table.sort(topItems, function(a, b) return a.rank < b.rank end)
@@ -203,7 +232,8 @@ local function IsSlotHealthy(slotID, specID, selectedBracket)
     end
 
     -- Check enchant criteria
-    local hasEnchantData = slotType and HasEnchantDataForSlot(specID, slotType, selectedBracket)
+    local hasEnchantData = slotType and cachedEnchantData and cachedEnchantData[slotType] and
+        #cachedEnchantData[slotType] > 0
 
     if not hasEnchantData then
         -- No enchant data exists for this slot, so unenchanted is fine
@@ -217,9 +247,8 @@ local function IsSlotHealthy(slotID, specID, selectedBracket)
 
     -- Check enchant popularity (must be >50% OR be the #1 enchant choice)
     local isTopEnchant = false
-    if GSTEnchantsDb then
-        -- Use the indexed lookup to get matching enchants
-        local enchants = EnchantsIndexes.LookupBySpecSlotBracket(specID, slotType, selectedBracket)
+    if cachedEnchantData and cachedEnchantData[slotType] then
+        local enchants = cachedEnchantData[slotType]
 
         -- Find the top enchant (rank 1)
         local topEnchant = nil
@@ -561,32 +590,19 @@ local function ShowSummary()
     local clearEndTime = debugprofilestop()
     GST_LogProfiling("Clearing existing frames took " .. string.format("%.2f", clearEndTime - clearStartTime) .. "ms")
 
-    -- Define slot order and layout configuration
-    local slotOrder = {
-        -- Left column: HEAD, NECK, SHOULDER, BACK, CHEST, WRIST
-        { 1,  2, 3, 15, 5,  9 },  -- Left column slots
-        -- Right column: HANDS, WAIST, LEGS, FEET, RING1, RING2
-        { 10, 6, 7, 8,  11, 12 }, -- Right column slots
-        -- Bottom row: TRINKET_1, TRINKET_2
-        { 13, 14 },               -- Trinkets row
-        -- Weapons row: MAIN_HAND, OFF_HAND
-        { 16, 17 }                -- Weapons row
-    }
-
-    -- Layout configuration
-    local layout = {
-        startY = -172,      -- Starting Y position (adjusted for spec dropdown + additional checkbox + 4px margin)
-        slotHeight = 48,    -- Height of each slot frame (matches icon size)
-        slotSpacing = 8,    -- Spacing between slots (increased for better visual separation)
-        columnWidth = 94,   -- Width of each slot (4px wider)
-        leftColumnX = 8,    -- X position for left column (8px margin)
-        rightColumnX = 112, -- X position for right column (8px + 94px + 10px gap)
-        rowSpacing = 15     -- Extra spacing between different row types (increased)
-    }
-
-
-
     -- Use shared slot mapping from ItemUtils
+
+    -- Pre-load all gear and enchant data for batching
+    local batchDataStartTime = debugprofilestop()
+
+    -- Batch load all gear data
+    local cachedGearData = SlotGearIndexes.BatchLookupBySlots(selectedSpecID, selectedBracket, allSlotIds)
+
+    -- Batch load all enchant data
+    local cachedEnchantData = EnchantsIndexes.BatchLookupBySlotTypes(selectedSpecID, selectedBracket, allSlotTypes)
+
+    local batchDataEndTime = debugprofilestop()
+    GST_LogProfiling("Batch data loading took " .. string.format("%.2f", batchDataEndTime - batchDataStartTime) .. "ms")
 
     -- Create slot frames with dynamic flow layout
     local slotCreationStartTime = debugprofilestop()
@@ -599,7 +615,8 @@ local function ShowSummary()
         local firstPassStartTime = debugprofilestop()
         for _, slotID in ipairs(rowSlots) do
             local isHealthyStartTime = debugprofilestop()
-            local isHealthy = IsSlotHealthy(slotID, selectedSpecID, selectedBracket)
+            local isHealthy = IsSlotHealthyWithData(slotID, selectedSpecID, selectedBracket, cachedGearData,
+                cachedEnchantData)
             local isHealthyEndTime = debugprofilestop()
             GST_LogProfiling(string.format("Slot %d - IsSlotHealthy: %.3fms", slotID,
                 isHealthyEndTime - isHealthyStartTime))

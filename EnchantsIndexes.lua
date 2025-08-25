@@ -58,6 +58,56 @@ function EnchantsIndexes.LookupBySpecSlotBracket(specId, slotType, bracket)
     return result
 end
 
+-- Memoization cache for batch lookups
+EnchantsIndexes.batchCache = {}
+
+-- Batch lookup function that pre-loads enchant data for multiple slot types at once
+-- Takes specId, bracket, and an array of slotTypes
+-- Returns a table mapping slotType -> array of enchant items
+function EnchantsIndexes.BatchLookupBySlotTypes(specId, bracket, slotTypes)
+    -- Ensure the global index exists
+    if not GSTEnchantsIndex then
+        GSTEnchantsIndex = EnchantsIndexes.BuildIndex()
+    end
+
+    -- Create a cache key from the parameters
+    local cacheKey = specId .. "_" .. bracket .. "_" .. table.concat(slotTypes, ",")
+
+    -- Check if we have a cached result
+    if EnchantsIndexes.batchCache[cacheKey] then
+        return EnchantsIndexes.batchCache[cacheKey]
+    end
+
+    local result = {}
+
+    -- Pre-initialize all slot type arrays
+    for _, slotType in ipairs(slotTypes) do
+        result[slotType] = {}
+    end
+
+    -- Build all the keys we need to look up
+    local keysToLookup = {}
+    for _, slotType in ipairs(slotTypes) do
+        local key = specId .. "_" .. slotType .. "_" .. bracket
+        keysToLookup[key] = slotType
+    end
+
+    -- Look up each key and populate the result
+    for key, slotType in pairs(keysToLookup) do
+        local indexArray = GSTEnchantsIndex[key]
+        if indexArray then
+            for _, dbIndex in ipairs(indexArray) do
+                table.insert(result[slotType], GSTEnchantsDb[dbIndex])
+            end
+        end
+    end
+
+    -- Cache the result
+    EnchantsIndexes.batchCache[cacheKey] = result
+
+    return result
+end
+
 -- Function to initialize the global index (call this once when the addon loads)
 function EnchantsIndexes.InitializeIndex()
     if not GSTEnchantsIndex then
@@ -68,3 +118,4 @@ end
 -- Example usage:
 -- EnchantsIndexes.InitializeIndex() -- Call this once when addon loads
 -- local results = EnchantsIndexes.LookupBySpecSlotBracket(250, "HEAD", "pve") -- Get all head enchants for spec 250 in PvE bracket
+-- local batchResults = EnchantsIndexes.BatchLookupBySlotTypes(250, "pve", {"HEAD", "CHEST", "LEGS"}) -- Get all enchants for head/chest/legs
