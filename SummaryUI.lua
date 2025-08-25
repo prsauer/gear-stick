@@ -6,11 +6,11 @@ local function GetGearPopularity(specId, slotType, itemID, bracket, slotID, equi
     if GSTSlotGearDb and itemID then
         local bestMatch = nil
 
-        for _, item in ipairs(GSTSlotGearDb) do
-            if item.slotId == slotID and
-                item.specId == specId and
-                item.bracket == bracket and
-                item.itemId == itemID then
+        -- Use the indexed lookup to get matching items
+        local slotItems = SlotGearIndexes.LookupBySlotSpecBracket(slotID, specId, bracket)
+
+        for _, item in ipairs(slotItems) do
+            if item.itemId == itemID then
                 -- Check if stats match (for items with stat variants)
                 if equippedStatsShort and item.statsShort then
                     if equippedStatsShort == item.statsShort then
