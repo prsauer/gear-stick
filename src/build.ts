@@ -1,6 +1,6 @@
 import "dotenv/config";
 import fetch from "node-fetch";
-import { Enchantment, Root } from "./types";
+import { Enchantment, Histo, Root } from "./types";
 import { closeSync, openSync, writeFileSync } from "fs";
 import { join, resolve } from "path";
 import { SpecializationsApi } from "./specTypes";
@@ -174,13 +174,36 @@ function makeTTLine(
   rank: number,
   bisName: string
 ) {
-  return `["${key}"] = {${item.percent.toFixed(1)}, ${
-    rank === 1 ? "true" : "false"
-  }, "${bisName}"},\n`;
+  return `["${key}"] = {${item.percent.toFixed(1)}, ${rank}, "${bisName}"},\n`;
 }
 
 function sanitizeItemName(name: string) {
   return name.replace(/"/g, '\\"');
+}
+
+function getStatsTag(item: Histo) {
+  // get secondaries
+  // return (Haste-Mastery) or similar:
+  const secondaryStats = [
+    "CRIT_RATING",
+    "HASTE_RATING",
+    "MASTERY_RATING",
+    "VERSATILITY",
+  ];
+  const niceNameMap = {
+    VERSATILITY: "Vers",
+    HASTE_RATING: "Haste",
+    MASTERY_RATING: "Mastery",
+    CRIT_RATING: "Crit",
+  };
+  const stats = item.item.stats
+    ? item.item.stats
+        .filter((s) => secondaryStats.includes(s.type?.type))
+        .sort((a, b) => (b.value || 0) - (a.value || 0))
+        .map((s) => niceNameMap[s.type!.type])
+        .join("-")
+    : "";
+  return stats;
 }
 
 async function writeDbLuaFile(data: Root, dbName: string, fileName: string) {
@@ -188,25 +211,106 @@ async function writeDbLuaFile(data: Root, dbName: string, fileName: string) {
 
   // Add profile count metadata for each spec
   data.forEach((specInfo) => {
+    console.log(`Processing ${specInfo.specId} in ${dbName}`);
     if (specInfo.profilesComparedCount) {
       lines += `["${specInfo.specId}_profileCount"] = ${specInfo.profilesComparedCount},\n`;
     }
-
+    const fingerData: Histo[] = [];
+    const trinketData: Histo[] = [];
     specInfo?.histoMaps.forEach((histoMap) => {
-      histoMap.histo.forEach((k, idx) => {
-        lines += makeTTLine(
-          `${specInfo.specId}${k.id}`,
-          k,
-          idx + 1,
-          idx > 0
-            ? `${sanitizeItemName(
-                histoMap.histo[0].item.name
-              )} (${histoMap.histo[0].percent.toFixed(1)}%)`
-            : ""
-        );
-      });
+      const recompilerSlots = [
+        "FINGER_1",
+        "FINGER_2",
+        "TRINKET_1",
+        "TRINKET_2",
+      ];
+      if (!recompilerSlots.includes(histoMap.slotType)) {
+        histoMap.histo.forEach((k, idx) => {
+          lines += makeTTLine(
+            `${specInfo.specId}${k.id}`,
+            k,
+            idx + 1,
+            idx > 0
+              ? `${sanitizeItemName(
+                  histoMap.histo[0].item.name
+                )} (${getStatsTag(
+                  histoMap.histo[0]
+                )}) (${histoMap.histo[0].percent.toFixed(1)}% - #${idx})`
+              : ""
+          );
+        });
+        // regular process
+      } else {
+        console.log(`recomp ${histoMap.slotType} ${histoMap.histo.length}`);
+        // recompiler processing
+        if (histoMap.slotType === "FINGER_1") {
+          fingerData.push(...histoMap.histo);
+        } else if (histoMap.slotType === "TRINKET_1") {
+          trinketData.push(...histoMap.histo);
+        }
+        if (histoMap.slotType === "FINGER_2") {
+          fingerData.push(...histoMap.histo);
+        } else if (histoMap.slotType === "TRINKET_2") {
+          trinketData.push(...histoMap.histo);
+        }
+      }
     });
+
+    // For the recompile data we need to combine items that have the same id
+    // items are { id, count, item, percent }
+    // item and percent are not useful. we  can just write the last value into the new combined item
+    // count should be summed across all that share the key
+    const fingerDataCombined = fingerData.reduce((acc, item) => {
+      const existing = acc.find((i) => i.id === item.id);
+      if (existing) {
+        existing.count += item.count;
+      } else {
+        acc.push(item);
+      }
+      return acc;
+    }, [] as Histo[]);
+    const trinketDataCombined = trinketData.reduce((acc, item) => {
+      const existing = acc.find((i) => i.id === item.id);
+      if (existing) {
+        existing.count += item.count;
+      } else {
+        acc.push(item);
+      }
+      return acc;
+    }, [] as Histo[]);
+
+    // Sort them by count:
+    fingerDataCombined.sort((a, b) => b.count - a.count);
+    trinketDataCombined.sort((a, b) => b.count - a.count);
+
+    // Write TTline as normal proc:
+    fingerDataCombined.forEach((item, idx) => {
+      lines += makeTTLine(
+        `${specInfo.specId}${item.id}`,
+        item,
+        idx + 1,
+        idx > 0
+          ? `${sanitizeItemName(item.item.name)} (${getStatsTag(
+              item
+            )}) (${item.percent.toFixed(1)}% - #${idx})`
+          : ""
+      );
+    });
+    trinketDataCombined.forEach((item, idx) => {
+      lines += makeTTLine(
+        `${specInfo.specId}${item.id}`,
+        item,
+        idx + 1,
+        idx > 0
+          ? `${sanitizeItemName(item.item.name)} (${getStatsTag(
+              item
+            )}) (${item.percent.toFixed(1)}% - #${idx})`
+          : ""
+      );
+    });
+    console.log({ fingerDataCombined, trinketDataCombined });
   });
+
   lines += "};";
 
   const fout = openSync(join(outputFolder, fileName), "w");
@@ -540,7 +644,7 @@ async function compileSlotBasedGear(
             lines += `    ["statsShort"] = "${shortStatsInfo}",\n`;
             lines += `    ["percent"] = ${item.percent.toFixed(1)},\n`;
             lines += `    ["rank"] = ${idx + 1},\n`;
-            lines += `    ["isBis"] = ${idx === 0},\n`;
+
             lines += `  },\n`;
           });
         }
@@ -583,7 +687,7 @@ async function compileSlotBasedGear(
   lines += `    if item.statsShort and item.statsShort ~= "" then\n`;
   lines += `        statsText = " (" .. item.statsShort .. ")"\n`;
   lines += `    end\n`;
-  lines += `    local bisText = item.isBis and " (BiS)" or ""\n`;
+  lines += `    local bisText = item.rank == 1 and " (BiS)" or ""\n`;
   lines += `    return string.format("%.1f%% - %s%s%s", item.percent, item.itemName, statsText, bisText)\n`;
   lines += `end\n\n`;
 
@@ -594,6 +698,14 @@ async function compileSlotBasedGear(
 
 async function main() {
   console.log("Starting build");
+
+  // TEST
+  // const td = await fetchHistoBlob(
+  //   "composed_shuffle-deathknight-blood_LATEST.json"
+  // );
+  // await writeDbLuaFile(td, "td", "td.lua");
+  // throw new Error("TEST OVER");
+  // EXIT
 
   const pveData = "composed_pve_LATEST.json";
   console.log(`Fetch: ${pveData}`);

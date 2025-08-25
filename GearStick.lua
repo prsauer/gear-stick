@@ -56,70 +56,67 @@ button:SetScript("OnClick", function(self, button, down)
 	msgFrame:Hide()
 end)
 
-local function debug(tbl)
+local function debug(tbl, indent)
+	indent = indent or ""
 	for key, value in pairs(tbl) do
-		print(key, value)
+		if type(value) == "table" then
+			print(indent .. key .. ":")
+			debug(value, indent .. "  ")
+		else
+			print(indent .. key .. ": " .. tostring(value))
+		end
 	end
 end
 
 local function GetStatsKeyFromTooltipHelper(...)
-	--["CRIT_RATING", "VERSATILITY", "HASTE_RATING", "MASTERY_RATING"]
-	local crit = ""
-	local versa = ""
-	local haste = ""
-	local mast = ""
-	local count = 0
+	-- Extract stats with their values and sort by value (highest first)
+	local stats = {}
+
 	for i = 1, select("#", ...) do
 		local region = select(i, ...)
 		if region and region:GetObjectType() == "FontString" then
 			local text = region:GetText() -- string or nil
-			if (text ~= nil and string.find(text, "%+.*Versatility")) then
-				count = count + 1
-				versa = "VERSATILITY"
-			end
-			if (text ~= nil and string.find(text, "%+.*Critical Strike")) then
-				count = count + 1
-				crit = "CRIT_RATING"
-			end
-			if (text ~= nil and string.find(text, "%+.*Haste")) then
-				count = count + 1
-				haste = "HASTE_RATING"
-			end
-			if (text ~= nil and string.find(text, "%+.*Mastery")) then
-				count = count + 1
-				mast = "MASTERY_RATING"
+			-- if first char is not +, skip line:
+			if (text ~= nil and string.sub(text, 1, 1) == "+") then
+				-- Extract stat value and type
+				local value, statType = nil, nil
+
+				if string.find(text, "%+.*Critical Strike") then
+					local captured = string.match(text, "%+(%d+,?%d*) Critical Strike")
+					value = tonumber((string.gsub(captured, ",", "")))
+					statType = "CRIT_RATING"
+				elseif string.find(text, "%+.*Haste") then
+					local captured = string.match(text, "%+([0-9,.]*) Haste")
+					value = tonumber((string.gsub(captured, ",", "")))
+					statType = "HASTE_RATING"
+				elseif string.find(text, "%+.*Mastery") then
+					local captured = string.match(text, "%+([0-9,.]*) Mastery")
+					value = tonumber((string.gsub(captured, ",", "")))
+					statType = "MASTERY_RATING"
+				elseif string.find(text, "%+.*Versatility") then
+					local captured = string.match(text, "%+(%d+,?%d*) Versatility")
+					value = tonumber((string.gsub(captured, ",", "")))
+					statType = "VERSATILITY"
+				end
+
+				if value and statType then
+					table.insert(stats, { value = value, type = statType })
+				end
 			end
 		end
 	end
 
+	-- Sort by value (highest first)
+	table.sort(stats, function(a, b) return a.value > b.value end)
+	-- debug(stats)
+
+	-- Build result string
 	local rval = ""
-
-	if (count > 0 and crit ~= "") then
-		rval = crit
-		count = count - 1
-		if (count > 0) then
+	for i, stat in ipairs(stats) do
+		if i > 1 then
 			rval = rval .. "-"
 		end
-	end
-
-	if (count > 0 and versa ~= "") then
-		rval = rval .. versa
-		count = count - 1
-		if (count > 0) then
-			rval = rval .. "-"
-		end
-	end
-
-	if (count > 0 and haste ~= "") then
-		rval = rval .. haste
-		count = count - 1
-		if (count > 0) then
-			rval = rval .. "-"
-		end
-	end
-
-	if (count > 0 and mast ~= "") then
-		rval = rval .. mast
+		rval = rval .. stat.type
 	end
 
 	return rval
@@ -136,9 +133,18 @@ local function writeTooltip(tooltip, itemID, currentSpecId)
 
 	if GearStickSettings["2v2"] then
 		if usageDb2v2[key] then
+			print(key)
+			local choiceColor = "|cFFeeFF00"
+			local rankText = " (#" .. usageDb2v2[key][2] .. ")"
+			if usageDb2v2[key][2] == 1 then
+				choiceColor = "|cFF11FF00"
+			end
 			tooltip:AddLine(
-				"[2v2]: |cFF11FF00" ..
-				usageDb2v2[key][1] .. "%|r players use this" .. (usageDb2v2[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,
+				"[2v2]: " .. choiceColor ..
+				usageDb2v2[key][1] ..
+				"% " .. rankText .. "|r players use this",
+				0.90, 0.80,
+				0.60,
 				0);
 			if usageDb2v2[key][3] ~= "" and GearStickSettings["bis"] then
 				tooltip:AddLine("[2v2-bis]: " .. usageDb2v2[key][3], 0.90, 0.80, 0.60, 0);
@@ -152,9 +158,17 @@ local function writeTooltip(tooltip, itemID, currentSpecId)
 
 	if GearStickSettings["3v3"] then
 		if usageDb3v3[key] then
+			local choiceColor = "|cFFeeFF00"
+			local rankText = " (#" .. usageDb3v3[key][2] .. ")"
+			if usageDb3v3[key][2] == 1 then
+				choiceColor = "|cFF11FF00"
+			end
 			tooltip:AddLine(
-				"[3v3]: |cFF11FF00" ..
-				usageDb3v3[key][1] .. "%|r players use this" .. (usageDb3v3[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,
+				"[3v3]: " .. choiceColor ..
+				usageDb3v3[key][1] ..
+				"% " .. rankText .. "|r players use this",
+				0.90, 0.80,
+				0.60,
 				0);
 			if usageDb3v3[key][3] ~= "" and GearStickSettings["bis"] then
 				tooltip:AddLine("[3v3-bis]: " .. usageDb3v3[key][3], 0.90, 0.80, 0.60, 0);
@@ -168,9 +182,17 @@ local function writeTooltip(tooltip, itemID, currentSpecId)
 
 	if GearStickSettings["pve"] then
 		if usageDbPvE[key] then
+			local choiceColor = "|cFFeeFF00"
+			local rankText = " (#" .. usageDbPvE[key][2] .. ")"
+			if usageDbPvE[key][2] == 1 then
+				choiceColor = "|cFF11FF00"
+			end
 			tooltip:AddLine(
-				"[PvE]: |cFF11FF00" ..
-				usageDbPvE[key][1] .. "%|r players use this" .. (usageDbPvE[key][2] and " (bis)" or ""), 0.90, 0.80, 0.60,
+				"[PvE]: " .. choiceColor ..
+				usageDbPvE[key][1] ..
+				"% " .. rankText .. "|r players use this",
+				0.90, 0.80,
+				0.60,
 				0);
 			if usageDbPvE[key][3] ~= "" and GearStickSettings["bis"] then
 				tooltip:AddLine("[PvE-bis]: " .. usageDbPvE[key][3], 0.90, 0.80, 0.60, 0);
