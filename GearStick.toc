@@ -1,7 +1,7 @@
 ## Interface: 110200
 ## Title: GearStick
 ## Author: Armsperson
-## Version: 2025.08.27.07
+## Version: 2025.08.27.18
 ## SavedVariables: GearStickSettings
 ## X-Curse-Project-ID: 937058
  
