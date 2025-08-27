@@ -91,6 +91,120 @@ function ImportDataStream:GetNumberOfBits()
     return BitsPerChar * #self.dataValues
 end
 
+-- Get all tree node IDs for mapping indices to actual node IDs
+function TalentDecoder:GetTreeNodeIDs(specID)
+    local allNodeIDs = {}
+
+    if not C_Traits or not C_ClassTalents then
+        return allNodeIDs
+    end
+
+    -- Get the tree ID for this specific spec (based on other addon patterns)
+    if C_ClassTalents.GetTraitTreeForSpec then
+        local treeID = C_ClassTalents.GetTraitTreeForSpec(specID)
+        if treeID and C_Traits.GetTreeNodes then
+            local nodes = C_Traits.GetTreeNodes(treeID)
+            if nodes then
+                for _, nodeID in ipairs(nodes) do
+                    table.insert(allNodeIDs, nodeID)
+                end
+            end
+        end
+    end
+
+    return allNodeIDs
+end
+
+-- Get talent details from node IDs (spell IDs, icons, etc)
+function TalentDecoder:GetTalentDetails(nodeIDs)
+    local talentDetails = {}
+    local debugInfo = {}
+
+    if not C_Traits then
+        debugInfo.error = "C_Traits not available"
+        return talentDetails, debugInfo
+    end
+
+    if not C_ClassTalents then
+        debugInfo.error = "C_ClassTalents not available"
+        return talentDetails, debugInfo
+    end
+
+    local configID = nil
+    if C_ClassTalents.GetActiveConfigID then
+        configID = C_ClassTalents.GetActiveConfigID()
+    end
+
+    debugInfo.configID = configID
+
+    if not configID then
+        debugInfo.error = "No configID available"
+        return talentDetails, debugInfo
+    end
+
+    debugInfo.nodeIDsToProcess = #nodeIDs
+    debugInfo.processedNodes = 0
+
+    for _, nodeID in ipairs(nodeIDs) do
+        if C_Traits.GetNodeInfo then
+            local nodeInfo = C_Traits.GetNodeInfo(configID, nodeID)
+            debugInfo.processedNodes = debugInfo.processedNodes + 1
+
+            if nodeInfo and nodeInfo.entryIDs then
+                -- Get the first entry (there may be multiple for choice nodes)
+                local entryID = nodeInfo.entryIDs[1]
+                if entryID and C_Traits.GetEntryInfo then
+                    local entryInfo = C_Traits.GetEntryInfo(configID, entryID)
+                    if entryInfo and entryInfo.definitionID then
+                        -- Use GetDefinitionInfo to get the actual talent details
+                        local definitionInfo = C_Traits.GetDefinitionInfo(entryInfo.definitionID)
+                        if definitionInfo then
+                            -- Debug: show what fields actually exist
+                            local debugFields = {}
+                            for k, v in pairs(definitionInfo) do
+                                table.insert(debugFields, k .. "=" .. tostring(v))
+                            end
+
+                            -- Extract spell ID from definition info
+                            local spellID = definitionInfo.spellID or definitionInfo.overriddenSpellID
+                            local spellName = nil
+                            local spellIcon = nil
+
+                            -- Get spell info if we have a spell ID
+                            if spellID and C_Spell and C_Spell.GetSpellInfo then
+                                local spellInfo = C_Spell.GetSpellInfo(spellID)
+                                if spellInfo then
+                                    spellName = spellInfo.name
+                                    spellIcon = spellInfo.iconID
+                                end
+                            end
+
+                            talentDetails[nodeID] = {
+                                nodeID = nodeID,
+                                entryID = entryID,
+                                definitionID = entryInfo.definitionID,
+                                spellID = spellID,
+                                spellName = spellName,
+                                spellIcon = spellIcon,
+                                maxRanks = entryInfo.maxRanks,
+                                rawDefinitionInfo = definitionInfo,
+                                debugFields = table.concat(debugFields, ", ")
+                            }
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    debugInfo.talentDetailsFound = 0
+    for _ in pairs(talentDetails) do
+        debugInfo.talentDetailsFound = debugInfo.talentDetailsFound + 1
+    end
+
+    return talentDetails, debugInfo
+end
+
 -- Decode talent loadout string
 function TalentDecoder:DecodeLoadout(loadoutString)
     local importStream = ImportDataStream:new(loadoutString)
@@ -128,10 +242,15 @@ function TalentDecoder:DecodeLoadout(loadoutString)
         }
     }
 
+    -- Get tree node IDs for mapping
+    local allNodeIDs = self:GetTreeNodeIDs(results.specID)
+    results.debugInfo.totalAvailableNodes = #allNodeIDs
+
     -- Try to read node selections with better error handling and debug info
     local nodeCount = 0
-    local maxNodes = 200 -- Increase limit to catch more nodes
+    local maxNodes = math.min(200, #allNodeIDs > 0 and #allNodeIDs or 200)
     local bitsRead = headerBitWidth
+    local selectedNodeIDs = {}
 
     while importStream.currentIndex <= #importStream.dataValues and nodeCount < maxNodes do
         -- Check if we have enough bits left for at least one more bit
@@ -149,9 +268,16 @@ function TalentDecoder:DecodeLoadout(loadoutString)
         end
 
         if isNodeSelected == 1 then
+            local actualNodeID = nil
+            if #allNodeIDs > nodeCount then
+                actualNodeID = allNodeIDs[nodeCount + 1] -- Lua is 1-indexed
+                table.insert(selectedNodeIDs, actualNodeID)
+            end
+
             local nodeInfo = {
                 selected = true,
                 nodeIndex = nodeCount,
+                nodeID = actualNodeID,
                 granted = false,
                 purchased = false
             }
@@ -203,6 +329,20 @@ function TalentDecoder:DecodeLoadout(loadoutString)
         nodeCount = nodeCount + 1
     end
 
+    -- Get talent details for selected nodes
+    if #selectedNodeIDs > 0 then
+        local talentDetails, talentDebugInfo = self:GetTalentDetails(selectedNodeIDs)
+        results.talentDetails = talentDetails
+        results.debugInfo.talentLookup = talentDebugInfo
+
+        -- Add talent details to node info
+        for _, nodeInfo in ipairs(results.nodeSelections) do
+            if nodeInfo.nodeID and talentDetails[nodeInfo.nodeID] then
+                nodeInfo.talentInfo = talentDetails[nodeInfo.nodeID]
+            end
+        end
+    end
+
     -- Add final debug info
     results.debugInfo.nodesProcessed = nodeCount
     results.debugInfo.finalBitsRead = bitsRead
@@ -219,7 +359,7 @@ local function CreateDiffUI()
 
     -- Create the main frame
     local frame = CreateFrame("Frame", "GSTDiffFrame", UIParent, "BackdropTemplate")
-    frame:SetSize(600, 200)
+    frame:SetSize(1000, 900)
     frame:SetPoint("CENTER")
     frame:SetFrameStrata("DIALOG")
 
@@ -255,6 +395,17 @@ local function CreateDiffUI()
     "CsbBV7//nP39x/JJympTqouKSAAAAAAAAAAAAzMzMMmNzYmBzwYMTDzMZMWmZmZGzYmlZAzMjNmZWmZeAYAGsBLjRjtBkZCwGG"
     local decodedData, errorMsg = TalentDecoder:DecodeLoadout(loadoutString)
 
+    -- Force some debug output to console
+    print("=== DIFF UI DEBUG ===")
+    print("decodedData type:", type(decodedData))
+    if decodedData then
+        print("specID:", decodedData.specID)
+        print("nodeSelections count:", decodedData.nodeSelections and #decodedData.nodeSelections or "nil")
+        print("debugInfo exists:", decodedData.debugInfo and "yes" or "no")
+    end
+    print("errorMsg:", errorMsg or "none")
+    print("===================")
+
     local yOffset = 0
 
     if errorMsg then
@@ -272,48 +423,23 @@ local function CreateDiffUI()
         headerText:SetTextColor(1, 1, 0, 1)
         yOffset = yOffset - 25
 
-        -- Show spec info
+        -- Show spec info with name instead of ID
         local specText = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         specText:SetPoint("TOPLEFT", content, "TOPLEFT", 10, yOffset)
-        specText:SetText("Specialization ID: " .. (decodedData.specID or "Unknown"))
-        specText:SetTextColor(0.8, 0.8, 1, 1)
-        yOffset = yOffset - 20
 
-        -- Show serialization version
-        local versionText = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        versionText:SetPoint("TOPLEFT", content, "TOPLEFT", 10, yOffset)
-        versionText:SetText("Serialization Version: " .. (decodedData.serializationVersion or "Unknown"))
-        versionText:SetTextColor(0.7, 0.7, 0.7, 1)
-        yOffset = yOffset - 25
-        
-        -- Show debug information
-        if decodedData.debugInfo then
-            local debugHeader = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            debugHeader:SetPoint("TOPLEFT", content, "TOPLEFT", 10, yOffset)
-            debugHeader:SetText("Debug Information:")
-            debugHeader:SetTextColor(1, 0.5, 0, 1) -- Orange
-            yOffset = yOffset - 18
-            
-            local debugLines = {
-                "Total bits: " .. decodedData.debugInfo.totalBits,
-                "Bits after header: " .. decodedData.debugInfo.bitsAfterHeader,
-                "Data values length: " .. decodedData.debugInfo.dataValuesLength,
-                "Nodes processed: " .. decodedData.debugInfo.nodesProcessed,
-                "Selected nodes found: " .. decodedData.debugInfo.selectedNodesFound,
-                "Final bits read: " .. decodedData.debugInfo.finalBitsRead,
-                "Final current index: " .. decodedData.debugInfo.finalCurrentIndex
-            }
-            
-            for _, line in ipairs(debugLines) do
-                local debugText = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-                debugText:SetPoint("TOPLEFT", content, "TOPLEFT", 20, yOffset)
-                debugText:SetText(line)
-                debugText:SetTextColor(0.8, 0.6, 0.4, 1) -- Light orange
-                yOffset = yOffset - 15
+        local specName = "Unknown Specialization"
+        if decodedData.specID and GetSpecializationInfoByID then
+            local id, name, description, icon, role, primaryStat = GetSpecializationInfoByID(decodedData.specID)
+            if name then
+                specName = name
             end
-            
-            yOffset = yOffset - 5 -- Extra spacing
         end
+
+        specText:SetText("Specialization: " .. specName)
+        specText:SetTextColor(0.8, 0.8, 1, 1)
+        yOffset = yOffset - 25
+
+
 
         -- Show selected nodes
         if decodedData.nodeSelections and #decodedData.nodeSelections > 0 then
@@ -324,26 +450,63 @@ local function CreateDiffUI()
             yOffset = yOffset - 20
 
             for i, nodeInfo in ipairs(decodedData.nodeSelections) do
-                local nodeText = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-                nodeText:SetPoint("TOPLEFT", content, "TOPLEFT", 20, yOffset)
+                -- Create icon texture if we have spell icon info
+                local iconTexture = nil
+                if nodeInfo.talentInfo and nodeInfo.talentInfo.spellIcon then
+                    -- Create a button to hold the icon so we can add tooltip functionality
+                    local iconButton = CreateFrame("Button", nil, content)
+                    iconButton:SetSize(32, 32)
+                    iconButton:SetPoint("TOPLEFT", content, "TOPLEFT", 20, yOffset + 2)
 
-                local nodeDesc = "Node " .. nodeInfo.nodeIndex
-                if nodeInfo.purchased then
-                    nodeDesc = nodeDesc .. " (Purchased"
-                    if nodeInfo.ranks then
-                        nodeDesc = nodeDesc .. ", " .. nodeInfo.ranks .. " ranks"
+                    -- Add the icon texture to the button
+                    iconTexture = iconButton:CreateTexture(nil, "ARTWORK")
+                    iconTexture:SetAllPoints(iconButton)
+                    iconTexture:SetTexture(nodeInfo.talentInfo.spellIcon)
+
+                    -- Add spell tooltip on hover
+                    if nodeInfo.talentInfo.spellID then
+                        iconButton:SetScript("OnEnter", function(self)
+                            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                            GameTooltip:SetSpellByID(nodeInfo.talentInfo.spellID)
+                            GameTooltip:Show()
+                        end)
+
+                        iconButton:SetScript("OnLeave", function(self)
+                            GameTooltip:Hide()
+                        end)
                     end
-                    if nodeInfo.choiceIndex then
-                        nodeDesc = nodeDesc .. ", choice " .. nodeInfo.choiceIndex
+                end
+
+                local nodeText = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+                local textXOffset = iconTexture and 60 or 20 -- Offset text if icon is present (32px icon + 28px spacing)
+                nodeText:SetPoint("TOPLEFT", content, "TOPLEFT", textXOffset, yOffset)
+
+                local nodeDesc = ""
+
+                -- Show just spell name and ranks
+                if nodeInfo.talentInfo and nodeInfo.talentInfo.spellName then
+                    nodeDesc = nodeInfo.talentInfo.spellName
+
+                    -- Add rank information in "x/y" format
+                    if nodeInfo.talentInfo.maxRanks and nodeInfo.talentInfo.maxRanks > 1 then
+                        local currentRanks
+                        if nodeInfo.ranks then
+                            -- Partially ranked - use the stored rank count
+                            currentRanks = nodeInfo.ranks
+                        else
+                            -- Fully ranked (isPartiallyRanked was 0) - use max ranks
+                            currentRanks = nodeInfo.talentInfo.maxRanks
+                        end
+                        nodeDesc = nodeDesc .. " " .. currentRanks .. "/" .. nodeInfo.talentInfo.maxRanks
                     end
-                    nodeDesc = nodeDesc .. ")"
                 else
-                    nodeDesc = nodeDesc .. " (Granted)"
+                    -- Fallback if no spell name
+                    nodeDesc = "Unknown Talent"
                 end
 
                 nodeText:SetText(nodeDesc)
                 nodeText:SetTextColor(0.9, 0.9, 0.9, 1)
-                yOffset = yOffset - 18
+                yOffset = yOffset - 36 -- Increased spacing for 32px icons
             end
         else
             local noNodesText = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
