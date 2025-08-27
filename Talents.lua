@@ -43,6 +43,18 @@ local function ListTalents()
         helpText:SetText("Click any button to highlight the talent code, then press Ctrl+C to copy")
         helpText:SetTextColor(0.5, 0.5, 0.5, 1) -- Gray color
 
+        -- Add Summary button
+        local summaryButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+        summaryButton:SetSize(80, 24)
+        summaryButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -30, -8)
+        summaryButton:SetText("Summary")
+        summaryButton:SetScript("OnClick", function()
+            if GST_Summary and GST_Summary.SlashCmd then
+                GST_Summary.SlashCmd()
+                frame:Hide() -- Close the talents panel
+            end
+        end)
+
         -- Add close button
         local closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
         closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)

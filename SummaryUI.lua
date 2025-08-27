@@ -302,7 +302,7 @@ local function ShowSummary()
         -- Create control container for dynamic layout
         local controlContainer = CreateFrame("Frame", nil, frame)
         controlContainer:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, -10)
-        controlContainer:SetSize(190, 130) -- Increased height for spec dropdown
+        controlContainer:SetSize(190, 130) -- Increased width for both buttons
         frame.controlContainer = controlContainer
 
         -- Add Enchants button
@@ -313,6 +313,18 @@ local function ShowSummary()
         enchantsButton:SetScript("OnClick", function()
             if GST_Enchants and GST_Enchants.SlashCmd then
                 GST_Enchants.SlashCmd()
+                SummaryFrame:Hide() -- Close the summary panel
+            end
+        end)
+
+        -- Add Talents button
+        local talentsButton = CreateFrame("Button", nil, controlContainer, "UIPanelButtonTemplate")
+        talentsButton:SetSize(80, 24)
+        talentsButton:SetPoint("TOPLEFT", enchantsButton, "TOPRIGHT", 5, 0)
+        talentsButton:SetText("Talents")
+        talentsButton:SetScript("OnClick", function()
+            if GST_Talents and GST_Talents.SlashCmd then
+                GST_Talents.SlashCmd()
                 SummaryFrame:Hide() -- Close the summary panel
             end
         end)
