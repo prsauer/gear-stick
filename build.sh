@@ -26,6 +26,7 @@ echo "ItemUtils.lua" >> GearStick.toc
 echo "Talents.lua" >> GearStick.toc
 echo "EnchantsUI.lua" >> GearStick.toc
 echo "SummaryUI.lua" >> GearStick.toc
+echo "DiffUtils.lua" >> GearStick.toc
 echo "DiffUI.lua" >> GearStick.toc
 echo "Logging.lua" >> GearStick.toc
 echo "GearStick.lua" >> GearStick.toc

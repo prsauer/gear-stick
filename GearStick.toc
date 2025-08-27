@@ -59,6 +59,7 @@ Talents.lua
 EnchantsUI.lua
 SummaryUI.lua
 ConfigUI.lua
+DiffUtils.lua
 DiffUI.lua
 Logging.lua
 GearStick.lua
