@@ -380,6 +380,13 @@ local function CreateDiffUI()
     frame.title:SetPoint("TOPLEFT", 8, -8)
     frame.title:SetText("Diff")
 
+    -- Add close button
+    local closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+    closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -5, -5)
+    closeButton:SetScript("OnClick", function()
+        frame:Hide()
+    end)
+
     -- Create scroll frame for talent information
     local scrollFrame = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
     scrollFrame:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, -10)
@@ -387,172 +394,134 @@ local function CreateDiffUI()
 
     -- Create content frame
     local content = CreateFrame("Frame", nil, scrollFrame)
-    content:SetSize(560, 100)
+    content:SetSize(960, 100) -- Wider for two columns
     scrollFrame:SetScrollChild(content)
 
     -- Decode the talent loadout
     local loadoutString =
     "CsbBV7//nP39x/JJympTqouKSAAAAAAAAAAAAzMzMMmNzYmBzwYMTDzMZMWmZmZGzYmlZAzMjNmZWmZeAYAGsBLjRjtBkZCwGG"
-    local decodedData, errorMsg = TalentDecoder:DecodeLoadout(loadoutString)
+    local loadout2String =
+    "CsbBV7//nP39x/JJympTqouKSAAAAAAAAAAAgxMzMwsZGzMYGGDTDzMZ2GLzMzMjZMzyMgZmZ2YmZZMDMwYwGsMGN2GQmJAbYA"
 
-    -- Force some debug output to console
-    print("=== DIFF UI DEBUG ===")
-    print("decodedData type:", type(decodedData))
-    if decodedData then
-        print("specID:", decodedData.specID)
-        print("nodeSelections count:", decodedData.nodeSelections and #decodedData.nodeSelections or "nil")
-        print("debugInfo exists:", decodedData.debugInfo and "yes" or "no")
-    end
-    print("errorMsg:", errorMsg or "none")
-    print("===================")
+    -- Decode both loadouts
+    local decodedData1, errorMsg1 = TalentDecoder:DecodeLoadout(loadoutString)
+    local decodedData2, errorMsg2 = TalentDecoder:DecodeLoadout(loadout2String)
 
-    local yOffset = 0
+    -- Create column separator line
+    local separatorLine = content:CreateTexture(nil, "ARTWORK")
+    separatorLine:SetSize(2, 800)
+    separatorLine:SetPoint("TOPLEFT", content, "TOPLEFT", 480, 0)
+    separatorLine:SetColorTexture(0.5, 0.5, 0.5, 1)
 
-    if errorMsg then
-        -- Show error message
-        local errorText = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        errorText:SetPoint("TOPLEFT", content, "TOPLEFT", 10, yOffset)
-        errorText:SetText("Error: " .. errorMsg)
-        errorText:SetTextColor(1, 0, 0, 1)
-        yOffset = yOffset - 20
-    elseif decodedData then
-        -- Show loadout info
-        local headerText = content:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-        headerText:SetPoint("TOPLEFT", content, "TOPLEFT", 10, yOffset)
-        headerText:SetText("Talent Loadout Decoded")
-        headerText:SetTextColor(1, 1, 0, 1)
+    -- Render both columns
+    local function RenderLoadoutColumn(decodedData, errorMsg, xOffset, columnTitle)
+        local yOffset = 0
+
+        -- Column title
+        local titleText = content:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        titleText:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 10, yOffset)
+        titleText:SetText(columnTitle)
+        titleText:SetTextColor(1, 1, 0, 1)
         yOffset = yOffset - 25
 
-        -- Show spec info with name instead of ID
-        local specText = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        specText:SetPoint("TOPLEFT", content, "TOPLEFT", 10, yOffset)
-
-        local specName = "Unknown Specialization"
-        if decodedData.specID and GetSpecializationInfoByID then
-            local id, name, description, icon, role, primaryStat = GetSpecializationInfoByID(decodedData.specID)
-            if name then
-                specName = name
-            end
+        if errorMsg then
+            local errorText = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            errorText:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 10, yOffset)
+            errorText:SetText("Error: " .. errorMsg)
+            errorText:SetTextColor(1, 0, 0, 1)
+            return
         end
 
+        if not decodedData then return end
+
+        -- Show specialization
+        local specName = "Unknown Specialization"
+        if decodedData.specID and GetSpecializationInfoByID then
+            local id, name = GetSpecializationInfoByID(decodedData.specID)
+            if name then specName = name end
+        end
+
+        local specText = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        specText:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 10, yOffset)
         specText:SetText("Specialization: " .. specName)
         specText:SetTextColor(0.8, 0.8, 1, 1)
-        yOffset = yOffset - 25
-
-
+        yOffset = yOffset - 30
 
         -- Show selected nodes
         if decodedData.nodeSelections and #decodedData.nodeSelections > 0 then
             local nodesHeaderText = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            nodesHeaderText:SetPoint("TOPLEFT", content, "TOPLEFT", 10, yOffset)
+            nodesHeaderText:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 10, yOffset)
             nodesHeaderText:SetText("Selected Nodes (" .. #decodedData.nodeSelections .. "):")
             nodesHeaderText:SetTextColor(1, 1, 1, 1)
-            yOffset = yOffset - 20
+            yOffset = yOffset - 25
 
             for i, nodeInfo in ipairs(decodedData.nodeSelections) do
-                -- Create icon texture if we have spell icon info
-                local iconTexture = nil
+                -- Create icon if available
                 if nodeInfo.talentInfo and nodeInfo.talentInfo.spellIcon then
-                    -- Create a button to hold the icon so we can add tooltip functionality
                     local iconButton = CreateFrame("Button", nil, content)
                     iconButton:SetSize(32, 32)
-                    iconButton:SetPoint("TOPLEFT", content, "TOPLEFT", 20, yOffset + 2)
+                    iconButton:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 20, yOffset + 2)
 
-                    -- Add the icon texture to the button
-                    iconTexture = iconButton:CreateTexture(nil, "ARTWORK")
+                    local iconTexture = iconButton:CreateTexture(nil, "ARTWORK")
                     iconTexture:SetAllPoints(iconButton)
                     iconTexture:SetTexture(nodeInfo.talentInfo.spellIcon)
 
-                    -- Add spell tooltip on hover
+                    -- Add tooltip
                     if nodeInfo.talentInfo.spellID then
                         iconButton:SetScript("OnEnter", function(self)
                             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
                             GameTooltip:SetSpellByID(nodeInfo.talentInfo.spellID)
                             GameTooltip:Show()
                         end)
-
                         iconButton:SetScript("OnLeave", function(self)
                             GameTooltip:Hide()
                         end)
                     end
                 end
 
+                -- Create text
                 local nodeText = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-                local textXOffset = iconTexture and 60 or 20 -- Offset text if icon is present (32px icon + 28px spacing)
-                nodeText:SetPoint("TOPLEFT", content, "TOPLEFT", textXOffset, yOffset)
+                nodeText:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 60, yOffset)
 
                 local nodeDesc = ""
-
-                -- Show just spell name and ranks
                 if nodeInfo.talentInfo and nodeInfo.talentInfo.spellName then
                     nodeDesc = nodeInfo.talentInfo.spellName
 
-                    -- Add rank information in "x/y" format
+                    -- Add rank information
                     if nodeInfo.talentInfo.maxRanks and nodeInfo.talentInfo.maxRanks > 1 then
-                        local currentRanks
-                        if nodeInfo.ranks then
-                            -- Partially ranked - use the stored rank count
-                            currentRanks = nodeInfo.ranks
-                        else
-                            -- Fully ranked (isPartiallyRanked was 0) - use max ranks
-                            currentRanks = nodeInfo.talentInfo.maxRanks
-                        end
+                        local currentRanks = nodeInfo.ranks or nodeInfo.talentInfo.maxRanks
                         nodeDesc = nodeDesc .. " " .. currentRanks .. "/" .. nodeInfo.talentInfo.maxRanks
                     end
                 else
-                    -- Fallback if no spell name
                     nodeDesc = "Unknown Talent"
                 end
 
                 nodeText:SetText(nodeDesc)
                 nodeText:SetTextColor(0.9, 0.9, 0.9, 1)
-                yOffset = yOffset - 36 -- Increased spacing for 32px icons
+                yOffset = yOffset - 36
             end
-        else
-            local noNodesText = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            noNodesText:SetPoint("TOPLEFT", content, "TOPLEFT", 10, yOffset)
-            noNodesText:SetText("No talent nodes found in loadout")
-            noNodesText:SetTextColor(0.7, 0.7, 0.7, 1)
-            yOffset = yOffset - 20
         end
 
-        -- Update content height
-        content:SetHeight(math.abs(yOffset) + 20)
+        return yOffset
     end
 
-    -- Store the content frame for future updates
-    frame.content = content
+    -- Render both columns
+    local yOffset1 = RenderLoadoutColumn(decodedData1, errorMsg1, 0, "Loadout 1")
+    local yOffset2 = RenderLoadoutColumn(decodedData2, errorMsg2, 490, "Loadout 2")
 
-    -- Add Summary button
-    local summaryButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    summaryButton:SetSize(80, 24)
-    summaryButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -30, -8)
-    summaryButton:SetText("Summary")
-    summaryButton:SetScript("OnClick", function()
-        if GST_Summary and GST_Summary.SlashCmd then
-            GST_Summary.SlashCmd()
-            frame:Hide() -- Close the diff panel
-        end
-    end)
+    -- Adjust content height based on the taller column
+    local maxHeight = math.abs(math.min(yOffset1 or 0, yOffset2 or 0)) + 50
+    content:SetHeight(maxHeight)
 
-    -- Add close button
-    local closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
-    closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
-
-    -- Make the frame movable
-    frame:SetMovable(true)
-    frame:EnableMouse(true)
-    frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", frame.StartMoving)
-    frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
-
+    -- Store frame reference
     DiffFrame = frame
-    return frame
+
+    -- Show the frame
+    frame:Show()
 end
 
 function GST_DiffUI.ShowDiff()
-    local frame = CreateDiffUI()
-    frame:Show()
+    CreateDiffUI()
 end
 
 function GST_DiffUI.SlashCmd(arg1)
