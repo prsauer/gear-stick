@@ -329,6 +329,29 @@ local function ShowSummary()
             end
         end)
 
+        -- Add config gear button
+        local configButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+        configButton:SetSize(20, 20)
+        configButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -25, -2)
+        configButton:SetText("O")
+        configButton:SetNormalFontObject("GameFontNormalSmall")
+        configButton:SetScript("OnClick", function()
+            if GST_ConfigUI and GST_ConfigUI.SlashCmd then
+                GST_ConfigUI.SlashCmd()
+            end
+        end)
+
+        -- Add tooltip to config button
+        configButton:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText("Configuration", 1, 1, 1)
+            GameTooltip:AddLine("Open GearStick settings", 0.7, 0.7, 0.7, true)
+            GameTooltip:Show()
+        end)
+        configButton:SetScript("OnLeave", function(self)
+            GameTooltip:Hide()
+        end)
+
         -- Add close button
         local closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
         closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)

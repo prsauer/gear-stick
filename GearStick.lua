@@ -235,6 +235,11 @@ function frame:OnEvent(event, arg1, arg2)
 			if GST_Enchants and GST_Enchants.RefreshIfVisible then
 				GST_Enchants.RefreshIfVisible()
 			end
+
+			-- Update Config UI if it's currently shown
+			if GST_ConfigUI and GST_ConfigUI.RefreshIfVisible then
+				GST_ConfigUI.RefreshIfVisible()
+			end
 		end
 
 		local specChangeEnd = debugprofilestop()
@@ -256,6 +261,11 @@ function frame:OnEvent(event, arg1, arg2)
 		-- Update Enchants UI if it's currently shown
 		if GST_Enchants and GST_Enchants.RefreshIfVisible then
 			GST_Enchants.RefreshIfVisible()
+		end
+
+		-- Update Config UI if it's currently shown
+		if GST_ConfigUI and GST_ConfigUI.RefreshIfVisible then
+			GST_ConfigUI.RefreshIfVisible()
 		end
 
 		local combatRatingEnd = debugprofilestop()
@@ -285,7 +295,7 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, GST_OnTooltip
 
 SlashCmdList.GST = function(arg1)
 	if arg1 == nil or arg1 == "" then
-		GST_LogUser("Pass one of: 2v2 3v3 pve bis talents enchants summary news debug profiling status reset")
+		GST_LogUser("Pass one of: 2v2 3v3 pve bis talents enchants summary config news debug profiling status reset")
 		GST_Summary.SlashCmd("")
 		return
 	end
@@ -304,6 +314,11 @@ SlashCmdList.GST = function(arg1)
 
 	if msg == "summary" then
 		GST_Summary.SlashCmd(arg1)
+		return
+	end
+
+	if msg == "config" then
+		GST_ConfigUI.SlashCmd(arg1)
 		return
 	end
 
@@ -339,7 +354,7 @@ SlashCmdList.GST = function(arg1)
 		return
 	end
 	if msg ~= "2v2" and msg ~= "3v3" and msg ~= "pve" and msg ~= "bis" and msg ~= "debug" then
-		GST_LogUser("Pass one of: 2v2 3v3 bis pve debug profiling talents enchants summary status reset")
+		GST_LogUser("Pass one of: 2v2 3v3 bis pve debug profiling talents enchants summary config status reset")
 		return
 	end
 
