@@ -51,14 +51,14 @@ local function CreateDiffUI()
     local input1 = CreateFrame("EditBox", nil, content, "InputBoxTemplate")
     input1:SetSize(450, 25)
     input1:SetPoint("TOPLEFT", content, "TOPLEFT", 10, -10)
-    input1:SetText("CsbBV7//nP39x/JJympTqouKSAAAAAAAAAAAAzMzMMmNzYmBzwYMTDzMZMWmZmZGzYmlZAzMjNmZWmZeAYAGsBLjRjtBkZCwGG")
+    input1:SetText("CsbBV7//nP39x/JJympTqouKSAAAAAAAAAAAAmZmBmNzYmBzwYmZaYmJjxyMzMzMzYmlZAmZswMzyMzADwgFYZMasNgMTA2wA")
     input1:SetAutoFocus(false)
     input1:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
 
     local input2 = CreateFrame("EditBox", nil, content, "InputBoxTemplate")
     input2:SetSize(450, 25)
     input2:SetPoint("TOPLEFT", content, "TOPLEFT", 500, -10)
-    input2:SetText("CsbBV7//nP39x/JJympTqouKSAAAAAAAAAAAgxMzMwsZGzMYGGDTDzMZ2GLzMzMjZMzyMgZmZ2YmZZMDMwYwGsMGN2GQmJAbYA")
+    input2:SetText("CsbBV7//nP39x/JJympTqouKSAAAAAAAAAAAAmZmBzwMmZwMww0YmZysNWmZmZGzYmlZAzMzsxMzyMzADMGsBLjRjtBkZCwGG")
     input2:SetAutoFocus(false)
     input2:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
 
@@ -118,54 +118,85 @@ local function CreateDiffUI()
         table.insert(createdElements[columnKey], specText)
         yOffset = yOffset - 30
 
-        -- Show selected nodes
+        -- Group talents by tree category
         if decodedData.nodeSelections and #decodedData.nodeSelections > 0 then
-            for i, nodeInfo in ipairs(decodedData.nodeSelections) do
-                -- Create icon if available
-                if nodeInfo.talentInfo and nodeInfo.talentInfo.spellIcon then
-                    local iconButton = CreateFrame("Button", nil, content)
-                    iconButton:SetSize(32, 32)
-                    iconButton:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 20, yOffset + 2)
-                    table.insert(createdElements[columnKey], iconButton)
+            local categorizedTalents = {
+                Class = {},
+                Spec = {},
+                Hero = {},
+                Unknown = {}
+            }
 
-                    local iconTexture = iconButton:CreateTexture(nil, "ARTWORK")
-                    iconTexture:SetAllPoints(iconButton)
-                    iconTexture:SetTexture(nodeInfo.talentInfo.spellIcon)
+            -- Categorize all talents
+            for _, nodeInfo in ipairs(decodedData.nodeSelections) do
+                local category = nodeInfo.treeCategory or "Unknown"
+                table.insert(categorizedTalents[category], nodeInfo)
+            end
 
-                    -- Add tooltip
-                    if nodeInfo.talentInfo.spellID then
-                        iconButton:SetScript("OnEnter", function(self)
-                            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                            GameTooltip:SetSpellByID(nodeInfo.talentInfo.spellID)
-                            GameTooltip:Show()
-                        end)
-                        iconButton:SetScript("OnLeave", function(self)
-                            GameTooltip:Hide()
-                        end)
+            -- Render each category
+            local categories = { "Class", "Spec", "Hero", "Unknown" }
+            for _, category in ipairs(categories) do
+                local categoryTalents = categorizedTalents[category]
+                if #categoryTalents > 0 then
+                    -- Category header
+                    local categoryHeader = content:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+                    categoryHeader:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 10, yOffset)
+                    categoryHeader:SetText(category .. " Talents")
+                    categoryHeader:SetTextColor(1, 0.8, 0.2, 1) -- Gold color
+                    table.insert(createdElements[columnKey], categoryHeader)
+                    yOffset = yOffset - 30
+
+                    -- Render talents in this category
+                    for _, nodeInfo in ipairs(categoryTalents) do
+                        -- Create icon if available
+                        if nodeInfo.talentInfo and nodeInfo.talentInfo.spellIcon then
+                            local iconButton = CreateFrame("Button", nil, content)
+                            iconButton:SetSize(32, 32)
+                            iconButton:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 20, yOffset + 2)
+                            table.insert(createdElements[columnKey], iconButton)
+
+                            local iconTexture = iconButton:CreateTexture(nil, "ARTWORK")
+                            iconTexture:SetAllPoints(iconButton)
+                            iconTexture:SetTexture(nodeInfo.talentInfo.spellIcon)
+
+                            -- Add tooltip
+                            if nodeInfo.talentInfo.spellID then
+                                iconButton:SetScript("OnEnter", function(self)
+                                    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                                    GameTooltip:SetSpellByID(nodeInfo.talentInfo.spellID)
+                                    GameTooltip:Show()
+                                end)
+                                iconButton:SetScript("OnLeave", function(self)
+                                    GameTooltip:Hide()
+                                end)
+                            end
+                        end
+
+                        -- Create text
+                        local nodeText = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+                        nodeText:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 60, yOffset)
+                        table.insert(createdElements[columnKey], nodeText)
+
+                        local nodeDesc = ""
+                        if nodeInfo.talentInfo and nodeInfo.talentInfo.spellName then
+                            nodeDesc = nodeInfo.talentInfo.spellName
+
+                            -- Add rank information
+                            if nodeInfo.talentInfo.maxRanks and nodeInfo.talentInfo.maxRanks > 1 then
+                                local currentRanks = nodeInfo.ranks or nodeInfo.talentInfo.maxRanks
+                                nodeDesc = nodeDesc .. " " .. currentRanks .. "/" .. nodeInfo.talentInfo.maxRanks
+                            end
+                        else
+                            nodeDesc = "Unknown Talent"
+                        end
+
+                        nodeText:SetText(nodeDesc)
+                        nodeText:SetTextColor(0.9, 0.9, 0.9, 1)
+                        yOffset = yOffset - 36
                     end
+
+                    yOffset = yOffset - 10 -- Extra space between categories
                 end
-
-                -- Create text
-                local nodeText = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-                nodeText:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 60, yOffset)
-                table.insert(createdElements[columnKey], nodeText)
-
-                local nodeDesc = ""
-                if nodeInfo.talentInfo and nodeInfo.talentInfo.spellName then
-                    nodeDesc = nodeInfo.talentInfo.spellName
-
-                    -- Add rank information
-                    if nodeInfo.talentInfo.maxRanks and nodeInfo.talentInfo.maxRanks > 1 then
-                        local currentRanks = nodeInfo.ranks or nodeInfo.talentInfo.maxRanks
-                        nodeDesc = nodeDesc .. " " .. currentRanks .. "/" .. nodeInfo.talentInfo.maxRanks
-                    end
-                else
-                    nodeDesc = "Unknown Talent"
-                end
-
-                nodeText:SetText(nodeDesc)
-                nodeText:SetTextColor(0.9, 0.9, 0.9, 1)
-                yOffset = yOffset - 36
             end
         end
 

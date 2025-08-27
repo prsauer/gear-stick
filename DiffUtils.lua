@@ -204,6 +204,35 @@ function TalentDecoder:GetTalentDetails(nodeIDs)
     return talentDetails, debugInfo
 end
 
+-- Determine talent tree category based on node properties
+function TalentDecoder:GetNodeTreeCategory(nodeID, configID)
+    if not C_Traits or not configID or not nodeID then
+        return "Unknown"
+    end
+
+    local nodeInfo = C_Traits.GetNodeInfo(configID, nodeID)
+    if not nodeInfo then
+        return "Unknown"
+    end
+
+    -- Hero talents have a subTreeID field that distinguishes them
+    if nodeInfo.subTreeID then
+        return "Hero"
+    end
+
+    -- For class vs spec trees, use position-based detection
+    -- Based on Details addon pattern: posX > 9000 indicates spec tree
+    if nodeInfo.posX then
+        if nodeInfo.posX > 9000 then
+            return "Spec"
+        else
+            return "Class"
+        end
+    end
+
+    return "Unknown"
+end
+
 -- Get talent details for a specific choice within a choice node
 function TalentDecoder:GetChoiceTalentDetails(nodeID, choiceIndex, configID)
     if not C_Traits or not configID then
@@ -395,6 +424,11 @@ function TalentDecoder:DecodeLoadout(loadoutString)
         -- Add talent details to node info (handle choice nodes)
         for _, nodeInfo in ipairs(results.nodeSelections) do
             if nodeInfo.nodeID then
+                -- Add tree category information
+                if configID then
+                    nodeInfo.treeCategory = self:GetNodeTreeCategory(nodeInfo.nodeID, configID)
+                end
+
                 -- For choice nodes, we need to get the specific choice entry
                 if nodeInfo.choiceIndex ~= nil and configID then
                     -- Get choice-specific talent info
