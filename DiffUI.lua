@@ -12,7 +12,7 @@ local function CreateDiffUI()
     local frame = CreateFrame("Frame", "GSTDiffFrame", UIParent, "BackdropTemplate")
     frame:SetSize(1000, 900)
     frame:SetPoint("CENTER")
-    frame:SetFrameStrata("DIALOG")
+    frame:SetFrameStrata("FULLSCREEN_DIALOG")
 
     -- Set up the backdrop
     frame:SetBackdrop({
@@ -384,13 +384,19 @@ local function CreateDiffUI()
             input1:SetEnabled(true)
             input1:SetTextColor(1, 1, 1, 1) -- Normal white text
             input1:SetText(
-            "CsbBV7//nP39x/JJympTqouKSAAAAAAAAAAAAmZmBmNzYmBzwYmZaYmJjxyMzMzMzYmlZAmZswMzyMzADwgFYZMasNgMTA2wA")
+                "CsbBV7//nP39x/JJympTqouKSAAAAAAAAAAAAmZmBmNzYmBzwYmZaYmJjxyMzMzMzYmlZAmZswMzyMzADwgFYZMasNgMTA2wA")
         end
         DelayedRefresh()
     end
 
     -- Set up checkbox event handler
     useCurrentCheckbox:SetScript("OnClick", UpdateInput1State)
+
+    -- Store references in the frame for external access
+    frame.useCurrentCheckbox = useCurrentCheckbox
+    frame.input1 = input1
+    frame.input2 = input2
+    useCurrentCheckbox.updateFunction = UpdateInput1State
 
     input1:SetScript("OnTextChanged", function(self, userInput)
         if userInput and not useCurrentCheckbox:GetChecked() then DelayedRefresh() end
@@ -424,6 +430,31 @@ end
 
 function GST_DiffUI.ShowDiff()
     CreateDiffUI()
+end
+
+function GST_DiffUI.ShowDiffWithLoadouts(useCurrentLoadout, rightLoadoutString)
+    CreateDiffUI()
+
+    -- Set the checkbox state if specified
+    if useCurrentLoadout ~= nil and DiffFrame then
+        -- Find the checkbox (we need to store a reference to it)
+        local checkbox = DiffFrame.useCurrentCheckbox
+        if checkbox then
+            checkbox:SetChecked(useCurrentLoadout)
+            -- Trigger the update function
+            if checkbox.updateFunction then
+                checkbox.updateFunction()
+            end
+        end
+    end
+
+    -- Set the right loadout string if specified
+    if rightLoadoutString and DiffFrame then
+        local input2 = DiffFrame.input2
+        if input2 then
+            input2:SetText(rightLoadoutString)
+        end
+    end
 end
 
 function GST_DiffUI.SlashCmd(arg1)

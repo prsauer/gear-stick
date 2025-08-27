@@ -5,7 +5,7 @@ local function ListTalents()
     -- Create the main frame if it doesn't exist
     if not TalentListFrame then
         local frame = CreateFrame("Frame", "TalentListFrame", UIParent, "BackdropTemplate")
-        frame:SetSize(600, 500)
+        frame:SetSize(720, 500)
         frame:SetPoint("CENTER")
         frame:SetFrameStrata("DIALOG")
 
@@ -33,7 +33,7 @@ local function ListTalents()
 
         -- Create the content frame
         local content = CreateFrame("Frame", nil, scrollFrame)
-        content:SetSize(540, 50) -- Made content wider to match new frame size
+        content:SetSize(660, 50) -- Made content wider to match new frame size
         scrollFrame:SetScrollChild(content)
         frame.content = content
 
@@ -159,7 +159,7 @@ local function ListTalents()
 
         -- Create bracket header
         local headerFrame = CreateFrame("Frame", nil, TalentListFrame.content)
-        headerFrame:SetSize(520, 25)
+        headerFrame:SetSize(640, 25)
         headerFrame:SetPoint("TOPLEFT", TalentListFrame.content, "TOPLEFT", 0, -yOffset)
 
         -- Add header background
@@ -181,9 +181,9 @@ local function ListTalents()
 
         -- Create buttons for this bracket's loadouts
         for _, loadout in ipairs(loadoutList) do
-            -- Create container frame for button and editbox
+            -- Create container frame for button, editbox, and diff button
             local container = CreateFrame("Frame", nil, TalentListFrame.content)
-            container:SetSize(520, 30)
+            container:SetSize(600, 30)
             container:SetPoint("TOPLEFT", TalentListFrame.content, "TOPLEFT", 0, -yOffset)
 
             -- Create loadout button
@@ -199,15 +199,29 @@ local function ListTalents()
 
             -- Create EditBox
             local editBox = CreateFrame("EditBox", nil, container, "InputBoxTemplate")
-            editBox:SetSize(300, 20)
+            editBox:SetSize(220, 20)
             editBox:SetPoint("LEFT", button, "RIGHT", 10, 0)
             editBox:SetAutoFocus(false)
             editBox:SetText(loadout.code)
 
-            -- Set up the click handler
+            -- Create View Diff button
+            local diffButton = CreateFrame("Button", nil, container, "UIPanelButtonTemplate")
+            diffButton:SetSize(80, 20)
+            diffButton:SetPoint("LEFT", editBox, "RIGHT", 10, 0)
+            diffButton:SetText("View Diff")
+
+            -- Set up the click handler for main button
             button:SetScript("OnClick", function()
                 editBox:SetFocus()
                 editBox:HighlightText()
+            end)
+
+            -- Set up the click handler for diff button
+            diffButton:SetScript("OnClick", function()
+                -- Open diff UI with current loadout checkbox checked and this loadout on the right
+                if GST_DiffUI and GST_DiffUI.ShowDiffWithLoadouts then
+                    GST_DiffUI.ShowDiffWithLoadouts(true, loadout.code)
+                end
             end)
 
             yOffset = yOffset + 35 -- Space between buttons
