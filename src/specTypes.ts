@@ -17,7 +17,7 @@ export interface Self {
 export interface Specialization {
   specialization: Specialization2;
   pvp_talent_slots: PvpTalentSlot[];
-  loadouts: Loadout[];
+  loadouts?: Loadout[];
 }
 
 export interface Specialization2 {

@@ -211,7 +211,7 @@ async function writeDbLuaFile(data: Root, dbName: string, fileName: string) {
 
   // Add profile count metadata for each spec
   data.forEach((specInfo) => {
-    console.log(`Processing ${specInfo.specId} in ${dbName}`);
+    // console.log(`Processing ${specInfo.specId} in ${dbName}`);
     if (specInfo.profilesComparedCount) {
       lines += `["${specInfo.specId}_profileCount"] = ${specInfo.profilesComparedCount},\n`;
     }
@@ -241,7 +241,7 @@ async function writeDbLuaFile(data: Root, dbName: string, fileName: string) {
         });
         // regular process
       } else {
-        console.log(`recomp ${histoMap.slotType} ${histoMap.histo.length}`);
+        // console.log(`recomp ${histoMap.slotType} ${histoMap.histo.length}`);
         // recompiler processing
         if (histoMap.slotType === "FINGER_1") {
           fingerData.push(...histoMap.histo);
@@ -312,7 +312,7 @@ async function writeDbLuaFile(data: Root, dbName: string, fileName: string) {
           : ""
       );
     });
-    console.log({ fingerDataCombined, trinketDataCombined });
+    // console.log({ fingerDataCombined, trinketDataCombined });
   });
 
   lines += "};";
@@ -322,30 +322,74 @@ async function writeDbLuaFile(data: Root, dbName: string, fileName: string) {
   closeSync(fout);
 }
 
+// Cache for getTalentCode results to avoid redundant API calls
+const talentCodeCache = new Map<string, string | null>();
+
+function getTalentCacheReport(): void {
+  const totalKeys = talentCodeCache.size;
+  const nullKeys = Array.from(talentCodeCache.values()).filter(
+    (value) => value === null
+  ).length;
+  const successfulKeys = totalKeys - nullKeys;
+  const nullPercentage =
+    totalKeys > 0 ? ((nullKeys / totalKeys) * 100).toFixed(1) : "0.0";
+  const successPercentage =
+    totalKeys > 0 ? ((successfulKeys / totalKeys) * 100).toFixed(1) : "0.0";
+
+  console.log("\n=== Talent Code Cache Report ===");
+  console.log(`Total talent code requests: ${totalKeys}`);
+  console.log(
+    `Successful talent codes: ${successfulKeys} (${successPercentage}%)`
+  );
+  console.log(`Failed/null talent codes: ${nullKeys} (${nullPercentage}%)`);
+  console.log("================================\n");
+}
+
 async function getTalentCode(
   characterName: string,
   realm: string,
   specId: string
 ): Promise<string | null> {
+  const url = `https://wow.spires.io/api/battlenet/profile/wow/character/${realm}/${characterName.toLowerCase()}/specializations?namespace=profile-us&locale=en_US`;
+  const cacheKey = `${url}#${specId}`;
+
+  // Check if we already have this specific talent code cached
+  if (talentCodeCache.has(cacheKey)) {
+    console.log(`Using cached talent code for ${cacheKey}`);
+    return talentCodeCache.get(cacheKey)!;
+  }
+
   try {
-    const res = await fetch(
-      `https://wow.spires.io/api/battlenet/profile/wow/character/${realm}/${characterName.toLowerCase()}/specializations?namespace=profile-us&locale=en_US`
-    );
+    console.log(`Fetching talent code for ${cacheKey}`);
+    const res = await fetch(url);
     const data: SpecializationsApi = (await res.json()) as SpecializationsApi;
 
     // Find the matching spec and its active loadout
     const spec = data.specializations.find(
       (s) => `${s.specialization.id}` === specId
     );
-    if (!spec) return null;
+    if (!spec) {
+      console.log(`No spec found for ${cacheKey}`);
+      talentCodeCache.set(cacheKey, null);
+      return null;
+    }
 
-    const activeLoadout = spec.loadouts.find((l) => l.is_active);
-    return activeLoadout?.talent_loadout_code || null;
+    const activeLoadout = spec.loadouts?.find((l) => l.is_active);
+    if (!activeLoadout) {
+      console.log(`No active loadout found for ${cacheKey}`);
+      talentCodeCache.set(cacheKey, null);
+      return null;
+    }
+    const talentCode = activeLoadout?.talent_loadout_code || null;
+
+    // Cache the result (even if null)
+    console.log(`set ${cacheKey} to ${talentCode}`);
+    talentCodeCache.set(cacheKey, talentCode);
+    return talentCode;
   } catch (error) {
-    console.error(
-      `Failed to fetch talent code for ${characterName}-${realm} (spec ${specId}):`,
-      error
-    );
+    console.error(`Failed to fetch talent code from ${url}:`, error);
+    // Cache the null result to avoid retrying failed requests
+    talentCodeCache.set(cacheKey, null);
     return null;
   }
 }
@@ -695,27 +739,30 @@ async function main() {
   closeSync(fout);
 
   // Talents are FUBAR
-  // await compileTalents(
-  //   [
-  //     {
-  //       bracket: "pve",
-  //       data: pveJson,
-  //     },
-  //     {
-  //       bracket: "2v2",
-  //       data: json2v2,
-  //     },
-  //     {
-  //       bracket: "3v3",
-  //       data: json3v3,
-  //     },
-  //     ...slicedSpecNames.map((spec) => ({
-  //       bracket: spec,
-  //       data: shuffleData[spec],
-  //     })),
-  //   ],
-  //   "Loadouts.lua"
-  // );
+  await compileTalents(
+    [
+      {
+        bracket: "pve",
+        data: pveJson,
+      },
+      {
+        bracket: "2v2",
+        data: json2v2,
+      },
+      {
+        bracket: "3v3",
+        data: json3v3,
+      },
+      ...slicedSpecNames.map((spec) => ({
+        bracket: spec,
+        data: shuffleData[spec],
+      })),
+    ],
+    "Loadouts.lua"
+  );
+
+  // Generate talent cache report
+  getTalentCacheReport();
 
   await compileEnchants(
     [
