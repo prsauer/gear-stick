@@ -4,6 +4,7 @@ local DiffFrame = nil
 
 local function CreateDiffUI()
     if DiffFrame then
+        DiffFrame:Show()
         return DiffFrame
     end
 
@@ -37,6 +38,13 @@ local function CreateDiffUI()
         frame:Hide()
     end)
 
+    -- Make frame movable
+    frame:SetMovable(true)
+    frame:EnableMouse(true)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetScript("OnDragStart", frame.StartMoving)
+    frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+
     -- Create scroll frame for talent information
     local scrollFrame = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
     scrollFrame:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, -10)
@@ -47,20 +55,46 @@ local function CreateDiffUI()
     content:SetSize(960, 100) -- Wider for two columns
     scrollFrame:SetScrollChild(content)
 
+    -- Create checkbox for using current loadout
+    local useCurrentCheckbox = CreateFrame("CheckButton", nil, content, "UICheckButtonTemplate")
+    useCurrentCheckbox:SetSize(24, 24)
+    useCurrentCheckbox:SetPoint("TOPLEFT", content, "TOPLEFT", 10, -10)
+    useCurrentCheckbox.text = useCurrentCheckbox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    useCurrentCheckbox.text:SetPoint("LEFT", useCurrentCheckbox, "RIGHT", 5, 0)
+    useCurrentCheckbox.text:SetText("Use Current Loadout")
+
     -- Create input boxes for loadout codes
     local input1 = CreateFrame("EditBox", nil, content, "InputBoxTemplate")
-    input1:SetSize(450, 25)
-    input1:SetPoint("TOPLEFT", content, "TOPLEFT", 10, -10)
+    input1:SetSize(420, 25)
+    input1:SetPoint("TOPLEFT", content, "TOPLEFT", 10, -40)
     input1:SetText("CsbBV7//nP39x/JJympTqouKSAAAAAAAAAAAAmZmBmNzYmBzwYmZaYmJjxyMzMzMzYmlZAmZswMzyMzADwgFYZMasNgMTA2wA")
     input1:SetAutoFocus(false)
     input1:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
 
     local input2 = CreateFrame("EditBox", nil, content, "InputBoxTemplate")
     input2:SetSize(450, 25)
-    input2:SetPoint("TOPLEFT", content, "TOPLEFT", 500, -10)
+    input2:SetPoint("TOPLEFT", content, "TOPLEFT", 500, -40)
     input2:SetText("CsbBV7//nP39x/JJympTqouKSAAAAAAAAAAAAmZmBzwMmZwMww0YmZysNWmZmZGzYmlZAzMzsxMzyMzADMGsBLjRjtBkZCwGG")
     input2:SetAutoFocus(false)
     input2:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+
+    -- Function to get current player's talent loadout string
+    local function GetCurrentLoadoutString()
+        if not C_ClassTalents or not C_ClassTalents.GetActiveConfigID then
+            return nil
+        end
+
+        local configID = C_ClassTalents.GetActiveConfigID()
+        if not configID then
+            return nil
+        end
+
+        if C_Traits and C_Traits.GenerateImportString then
+            return C_Traits.GenerateImportString(configID)
+        end
+
+        return nil
+    end
 
     -- Store references to created UI elements for cleanup by column
     local createdElements = {
@@ -205,7 +239,12 @@ local function CreateDiffUI()
 
     -- Function to compute differences between two loadouts
     local function ComputeDiff()
-        local loadoutString1 = input1:GetText() or ""
+        local loadoutString1 = ""
+        if useCurrentCheckbox:GetChecked() then
+            loadoutString1 = GetCurrentLoadoutString() or ""
+        else
+            loadoutString1 = input1:GetText() or ""
+        end
         local loadoutString2 = input2:GetText() or ""
 
         local decodedData1, errorMsg1 = GST_DiffUtils.ValidateAndDecode(loadoutString1)
@@ -335,8 +374,26 @@ local function CreateDiffUI()
         end)
     end
 
+    -- Function to update input1 state based on checkbox
+    local function UpdateInput1State()
+        if useCurrentCheckbox:GetChecked() then
+            input1:SetEnabled(false)
+            input1:SetTextColor(0.5, 0.5, 0.5, 1) -- Gray out text
+            input1:SetText("Using Current Loadout")
+        else
+            input1:SetEnabled(true)
+            input1:SetTextColor(1, 1, 1, 1) -- Normal white text
+            input1:SetText(
+            "CsbBV7//nP39x/JJympTqouKSAAAAAAAAAAAAmZmBmNzYmBzwYmZaYmJjxyMzMzMzYmlZAmZswMzyMzADwgFYZMasNgMTA2wA")
+        end
+        DelayedRefresh()
+    end
+
+    -- Set up checkbox event handler
+    useCurrentCheckbox:SetScript("OnClick", UpdateInput1State)
+
     input1:SetScript("OnTextChanged", function(self, userInput)
-        if userInput then DelayedRefresh() end
+        if userInput and not useCurrentCheckbox:GetChecked() then DelayedRefresh() end
     end)
     input2:SetScript("OnTextChanged", function(self, userInput)
         if userInput then DelayedRefresh() end
