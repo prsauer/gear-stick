@@ -1,0 +1,9 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+Never guess about the existence of WoW APIs. You must find examples of APIs being used in existing addons or physical (on disk) evidence that the api exists from a generated doc or code dump.
+
+Do not guess field names on objects you do not know the type of. Never do this ever.

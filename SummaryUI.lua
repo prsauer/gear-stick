@@ -302,7 +302,7 @@ local function ShowSummary()
         -- Create control container for dynamic layout
         local controlContainer = CreateFrame("Frame", nil, frame)
         controlContainer:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, -10)
-        controlContainer:SetSize(190, 130) -- Increased height for spec dropdown
+        controlContainer:SetSize(190, 130) -- Increased width for both buttons
         frame.controlContainer = controlContainer
 
         -- Add Enchants button
@@ -315,6 +315,41 @@ local function ShowSummary()
                 GST_Enchants.SlashCmd()
                 SummaryFrame:Hide() -- Close the summary panel
             end
+        end)
+
+        -- Add Talents button
+        local talentsButton = CreateFrame("Button", nil, controlContainer, "UIPanelButtonTemplate")
+        talentsButton:SetSize(80, 24)
+        talentsButton:SetPoint("TOPLEFT", enchantsButton, "TOPRIGHT", 5, 0)
+        talentsButton:SetText("Talents")
+        talentsButton:SetScript("OnClick", function()
+            if GST_Talents and GST_Talents.SlashCmd then
+                GST_Talents.SlashCmd()
+                SummaryFrame:Hide() -- Close the summary panel
+            end
+        end)
+
+        -- Add config gear button
+        local configButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+        configButton:SetSize(20, 20)
+        configButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -25, -2)
+        configButton:SetText("O")
+        configButton:SetNormalFontObject("GameFontNormalSmall")
+        configButton:SetScript("OnClick", function()
+            if GST_ConfigUI and GST_ConfigUI.SlashCmd then
+                GST_ConfigUI.SlashCmd()
+            end
+        end)
+
+        -- Add tooltip to config button
+        configButton:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText("Configuration", 1, 1, 1)
+            GameTooltip:AddLine("Open GearStick settings", 0.7, 0.7, 0.7, true)
+            GameTooltip:Show()
+        end)
+        configButton:SetScript("OnLeave", function(self)
+            GameTooltip:Hide()
         end)
 
         -- Add close button
