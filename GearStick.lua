@@ -305,7 +305,8 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, GST_OnTooltip
 
 SlashCmdList.GST = function(arg1)
 	if arg1 == nil or arg1 == "" then
-		GST_LogUser("Pass one of: 2v2 3v3 pve bis talents enchants summary config diff news debug profiling status reset")
+		GST_LogUser(
+		"Pass one of: 2v2 3v3 pve bis talents enchants summary config diff news debug profiling status reset")
 		GST_Summary.SlashCmd("")
 		return
 	end

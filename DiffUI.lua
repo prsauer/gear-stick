@@ -33,7 +33,8 @@ local function CreateDiffUI()
     -- Add the diff text
     local diffText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     diffText:SetPoint("CENTER", frame, "CENTER", 0, 0)
-    diffText:SetText("CsbBV7//nP39x/JJympTqouKSAAAAAAAAAAAAzMzMMmNzYmBzwYMTDzMZMWmZmZGzYmlZAzMjNmZWmZeAYAGsBLjRjtBkZCwGG")
+    diffText:SetText(
+    "CsbBV7//nP39x/JJympTqouKSAAAAAAAAAAAAzMzMMmNzYmBzwYMTDzMZMWmZmZGzYmlZAzMjNmZWmZeAYAGsBLjRjtBkZCwGG")
     diffText:SetWidth(580)
     diffText:SetJustifyH("CENTER")
 
