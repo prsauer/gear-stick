@@ -172,10 +172,95 @@ local function CreateDiffUI()
         return yOffset
     end
 
+    -- Function to compute differences between two loadouts
+    local function ComputeDiff()
+        local loadoutString1 = input1:GetText() or ""
+        local loadoutString2 = input2:GetText() or ""
+
+        local decodedData1, errorMsg1 = GST_DiffUtils.ValidateAndDecode(loadoutString1)
+        local decodedData2, errorMsg2 = GST_DiffUtils.ValidateAndDecode(loadoutString2)
+
+        -- Return early if either loadout is invalid
+        if errorMsg1 or errorMsg2 or not decodedData1 or not decodedData2 then
+            return decodedData1, errorMsg1, decodedData2, errorMsg2
+        end
+
+        -- Create sets of selected talents for each loadout (using node ID + choice index for comparison)
+        local talents1 = {}
+        local talents2 = {}
+
+        if decodedData1.nodeSelections then
+            for _, nodeInfo in ipairs(decodedData1.nodeSelections) do
+                if nodeInfo.nodeID then
+                    -- For choice nodes, include choice index in the key
+                    -- For regular nodes, use node ID + ranks
+                    local key
+                    if nodeInfo.choiceIndex ~= nil then
+                        -- Choice node: nodeID_choiceIndex_ranks
+                        local ranks = nodeInfo.ranks or (nodeInfo.talentInfo and nodeInfo.talentInfo.maxRanks or 1)
+                        key = nodeInfo.nodeID .. "_choice_" .. nodeInfo.choiceIndex .. "_" .. ranks
+                    else
+                        -- Regular node: nodeID_ranks
+                        local ranks = nodeInfo.ranks or (nodeInfo.talentInfo and nodeInfo.talentInfo.maxRanks or 1)
+                        key = nodeInfo.nodeID .. "_" .. ranks
+                    end
+                    talents1[key] = nodeInfo
+                end
+            end
+        end
+
+        if decodedData2.nodeSelections then
+            for _, nodeInfo in ipairs(decodedData2.nodeSelections) do
+                if nodeInfo.nodeID then
+                    -- For choice nodes, include choice index in the key
+                    -- For regular nodes, use node ID + ranks
+                    local key
+                    if nodeInfo.choiceIndex ~= nil then
+                        -- Choice node: nodeID_choiceIndex_ranks
+                        local ranks = nodeInfo.ranks or (nodeInfo.talentInfo and nodeInfo.talentInfo.maxRanks or 1)
+                        key = nodeInfo.nodeID .. "_choice_" .. nodeInfo.choiceIndex .. "_" .. ranks
+                    else
+                        -- Regular node: nodeID_ranks
+                        local ranks = nodeInfo.ranks or (nodeInfo.talentInfo and nodeInfo.talentInfo.maxRanks or 1)
+                        key = nodeInfo.nodeID .. "_" .. ranks
+                    end
+                    talents2[key] = nodeInfo
+                end
+            end
+        end
+
+        -- Create diff data: talents unique to each side
+        local diffData1 = {
+            specID = decodedData1.specID,
+            serializationVersion = decodedData1.serializationVersion,
+            nodeSelections = {}
+        }
+        local diffData2 = {
+            specID = decodedData2.specID,
+            serializationVersion = decodedData2.serializationVersion,
+            nodeSelections = {}
+        }
+
+        -- Find talents in loadout 1 that are NOT in loadout 2
+        for key, nodeInfo in pairs(talents1) do
+            if not talents2[key] then
+                table.insert(diffData1.nodeSelections, nodeInfo)
+            end
+        end
+
+        -- Find talents in loadout 2 that are NOT in loadout 1
+        for key, nodeInfo in pairs(talents2) do
+            if not talents1[key] then
+                table.insert(diffData2.nodeSelections, nodeInfo)
+            end
+        end
+
+        return diffData1, nil, diffData2, nil
+    end
+
     -- Function to refresh a specific column
     local function RefreshColumn(columnNum)
         local columnKey = "column" .. columnNum
-        local inputBox = columnNum == 1 and input1 or input2
 
         -- Cleanup elements for this specific column
         for _, element in pairs(createdElements[columnKey]) do
@@ -189,42 +274,52 @@ local function CreateDiffUI()
         -- Clear the tracking table for this column
         createdElements[columnKey] = {}
 
-        local loadoutString = inputBox:GetText() or ""
-        local decodedData, errorMsg = GST_DiffUtils.ValidateAndDecode(loadoutString)
+        -- Get diff data instead of individual loadout data
+        local diffData1, errorMsg1, diffData2, errorMsg2 = ComputeDiff()
+
+        local decodedData, errorMsg
+        if columnNum == 1 then
+            decodedData, errorMsg = diffData1, errorMsg1
+        else
+            decodedData, errorMsg = diffData2, errorMsg2
+        end
 
         -- Render just this column
         local xOffset = columnNum == 1 and 0 or 490
-        local columnTitle = "Loadout " .. columnNum
+        local columnTitle = columnNum == 1 and "Only in Loadout 1" or "Only in Loadout 2"
         RenderColumn(decodedData, errorMsg, xOffset, columnTitle, columnKey)
     end
 
     -- Add refresh on text change (now that RenderColumn is defined)
-    local refreshTimers = { nil, nil }
-    local function DelayedRefresh(columnNum)
-        -- Clear any existing timer for this column
-        refreshTimers[columnNum] = nil
+    local refreshTimer = nil
+    local function DelayedRefresh()
+        -- Clear any existing timer
+        refreshTimer = nil
 
-        -- Create new timer
-        refreshTimers[columnNum] = C_Timer.NewTimer(0.3, function()
-            RefreshColumn(columnNum)
-            refreshTimers[columnNum] = nil
+        -- Create new timer - refresh both columns since diff affects both
+        refreshTimer = C_Timer.NewTimer(0.3, function()
+            RefreshColumn(1)
+            RefreshColumn(2)
+            refreshTimer = nil
         end)
     end
 
     input1:SetScript("OnTextChanged", function(self, userInput)
-        if userInput then DelayedRefresh(1) end
+        if userInput then DelayedRefresh() end
     end)
     input2:SetScript("OnTextChanged", function(self, userInput)
-        if userInput then DelayedRefresh(2) end
+        if userInput then DelayedRefresh() end
     end)
 
     -- Also refresh on Enter for immediate feedback
     input1:SetScript("OnEnterPressed", function(self)
         self:ClearFocus()
         RefreshColumn(1)
+        RefreshColumn(2)
     end)
     input2:SetScript("OnEnterPressed", function(self)
         self:ClearFocus()
+        RefreshColumn(1)
         RefreshColumn(2)
     end)
 

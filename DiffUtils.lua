@@ -204,6 +204,58 @@ function TalentDecoder:GetTalentDetails(nodeIDs)
     return talentDetails, debugInfo
 end
 
+-- Get talent details for a specific choice within a choice node
+function TalentDecoder:GetChoiceTalentDetails(nodeID, choiceIndex, configID)
+    if not C_Traits or not configID then
+        return nil
+    end
+
+    local nodeInfo = C_Traits.GetNodeInfo(configID, nodeID)
+    if not nodeInfo or not nodeInfo.entryIDs then
+        return nil
+    end
+
+    -- Choice index is 0-based, but Lua arrays are 1-based
+    local entryID = nodeInfo.entryIDs[choiceIndex + 1]
+    if not entryID then
+        return nil
+    end
+
+    local entryInfo = C_Traits.GetEntryInfo(configID, entryID)
+    if not entryInfo or not entryInfo.definitionID then
+        return nil
+    end
+
+    local definitionInfo = C_Traits.GetDefinitionInfo(entryInfo.definitionID)
+    if not definitionInfo then
+        return nil
+    end
+
+    -- Extract spell ID from definition info
+    local spellID = definitionInfo.spellID or definitionInfo.overriddenSpellID
+    local spellName = nil
+    local spellIcon = nil
+
+    -- Get spell info if we have a spell ID
+    if spellID and C_Spell and C_Spell.GetSpellInfo then
+        local spellInfo = C_Spell.GetSpellInfo(spellID)
+        if spellInfo then
+            spellName = spellInfo.name
+            spellIcon = spellInfo.iconID
+        end
+    end
+
+    return {
+        nodeID = nodeID,
+        entryID = entryID,
+        spellID = spellID,
+        spellName = spellName,
+        spellIcon = spellIcon,
+        maxRanks = entryInfo.maxRanks or 1,
+        choiceIndex = choiceIndex
+    }
+end
+
 -- Decode talent loadout string
 function TalentDecoder:DecodeLoadout(loadoutString)
     local importStream = ImportDataStream:new(loadoutString)
@@ -334,10 +386,26 @@ function TalentDecoder:DecodeLoadout(loadoutString)
         results.talentDetails = talentDetails
         results.debugInfo.talentLookup = talentDebugInfo
 
-        -- Add talent details to node info
+        -- Get configID for choice node lookups
+        local configID = nil
+        if C_ClassTalents and C_ClassTalents.GetActiveConfigID then
+            configID = C_ClassTalents.GetActiveConfigID()
+        end
+
+        -- Add talent details to node info (handle choice nodes)
         for _, nodeInfo in ipairs(results.nodeSelections) do
-            if nodeInfo.nodeID and talentDetails[nodeInfo.nodeID] then
-                nodeInfo.talentInfo = talentDetails[nodeInfo.nodeID]
+            if nodeInfo.nodeID then
+                -- For choice nodes, we need to get the specific choice entry
+                if nodeInfo.choiceIndex ~= nil and configID then
+                    -- Get choice-specific talent info
+                    local choiceTalentInfo = self:GetChoiceTalentDetails(nodeInfo.nodeID, nodeInfo.choiceIndex, configID)
+                    if choiceTalentInfo then
+                        nodeInfo.talentInfo = choiceTalentInfo
+                    end
+                elseif talentDetails[nodeInfo.nodeID] then
+                    -- Regular node, use cached talent details
+                    nodeInfo.talentInfo = talentDetails[nodeInfo.nodeID]
+                end
             end
         end
     end
