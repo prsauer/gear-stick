@@ -62,172 +62,178 @@ local function CreateDiffUI()
     input2:SetAutoFocus(false)
     input2:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
 
-    -- Function to refresh the diff when input changes
-    local function RefreshDiff()
-        -- Clear existing content (except input boxes)
-        local children = { content:GetChildren() }
-        for _, child in pairs(children) do
-            if child and child ~= input1 and child ~= input2 then
-                child:Hide()
-                child:SetParent(nil)
-            end
-        end
+    -- Store references to created UI elements for cleanup by column
+    local createdElements = {
+        column1 = {},
+        column2 = {},
+        separator = nil
+    }
 
-        local loadoutString = input1:GetText() or ""
-        local loadout2String = input2:GetText() or ""
-
-        -- Validate and decode loadout strings using DiffUtils
-        local decodedData1, errorMsg1 = GST_DiffUtils.ValidateAndDecode(loadoutString)
-        local decodedData2, errorMsg2 = GST_DiffUtils.ValidateAndDecode(loadout2String)
-
-        -- Call RenderColumns after it's defined
-        if RenderColumns then
-            RenderColumns(decodedData1, errorMsg1, decodedData2, errorMsg2)
+    -- Function to create separator if it doesn't exist
+    local function EnsureSeparator()
+        if not createdElements.separator then
+            local separatorLine = content:CreateTexture(nil, "ARTWORK")
+            separatorLine:SetSize(2, 800)
+            separatorLine:SetPoint("TOPLEFT", content, "TOPLEFT", 480, -45)
+            separatorLine:SetColorTexture(0.5, 0.5, 0.5, 1)
+            createdElements.separator = separatorLine
         end
     end
 
-    -- Function to render both columns
-    local function RenderColumns(decodedData1, errorMsg1, decodedData2, errorMsg2)
-        -- Create column separator line
-        local separatorLine = content:CreateTexture(nil, "ARTWORK")
-        separatorLine:SetSize(2, 800)
-        separatorLine:SetPoint("TOPLEFT", content, "TOPLEFT", 480, -45)
-        separatorLine:SetColorTexture(0.5, 0.5, 0.5, 1)
+    -- Function to render a single column
+    local function RenderColumn(decodedData, errorMsg, xOffset, columnTitle, columnKey)
+        EnsureSeparator()   -- Make sure separator exists
+        local yOffset = -45 -- Start below the input boxes
 
-        local function RenderLoadoutColumn(decodedData, errorMsg, xOffset, columnTitle)
-            local yOffset = -45 -- Start below the input boxes
+        -- Column title
+        local titleText = content:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        titleText:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 10, yOffset)
+        titleText:SetText(columnTitle)
+        titleText:SetTextColor(1, 1, 0, 1)
+        table.insert(createdElements[columnKey], titleText)
+        yOffset = yOffset - 25
 
-            -- Column title
-            local titleText = content:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-            titleText:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 10, yOffset)
-            titleText:SetText(columnTitle)
-            titleText:SetTextColor(1, 1, 0, 1)
-            yOffset = yOffset - 25
+        if errorMsg then
+            local errorText = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            errorText:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 10, yOffset)
+            errorText:SetText(errorMsg)
+            errorText:SetTextColor(1, 0, 0, 1)
+            table.insert(createdElements[columnKey], errorText)
+            return
+        end
 
-            if errorMsg then
-                local errorText = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-                errorText:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 10, yOffset)
-                errorText:SetText(errorMsg)
-                errorText:SetTextColor(1, 0, 0, 1)
-                return
-            end
+        if not decodedData then return end
 
-            if not decodedData then return end
+        -- Show specialization
+        local specName = "Unknown Specialization"
+        if decodedData.specID and GetSpecializationInfoByID then
+            local id, name = GetSpecializationInfoByID(decodedData.specID)
+            if name then specName = name end
+        end
 
-            -- Show specialization
-            local specName = "Unknown Specialization"
-            if decodedData.specID and GetSpecializationInfoByID then
-                local id, name = GetSpecializationInfoByID(decodedData.specID)
-                if name then specName = name end
-            end
+        local specText = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        specText:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 10, yOffset)
+        specText:SetText("Specialization: " .. specName)
+        specText:SetTextColor(0.8, 0.8, 1, 1)
+        table.insert(createdElements[columnKey], specText)
+        yOffset = yOffset - 30
 
-            local specText = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            specText:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 10, yOffset)
-            specText:SetText("Specialization: " .. specName)
-            specText:SetTextColor(0.8, 0.8, 1, 1)
-            yOffset = yOffset - 30
+        -- Show selected nodes
+        if decodedData.nodeSelections and #decodedData.nodeSelections > 0 then
+            for i, nodeInfo in ipairs(decodedData.nodeSelections) do
+                -- Create icon if available
+                if nodeInfo.talentInfo and nodeInfo.talentInfo.spellIcon then
+                    local iconButton = CreateFrame("Button", nil, content)
+                    iconButton:SetSize(32, 32)
+                    iconButton:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 20, yOffset + 2)
+                    table.insert(createdElements[columnKey], iconButton)
 
-            -- Show selected nodes
-            if decodedData.nodeSelections and #decodedData.nodeSelections > 0 then
-                for i, nodeInfo in ipairs(decodedData.nodeSelections) do
-                    -- Create icon if available
-                    if nodeInfo.talentInfo and nodeInfo.talentInfo.spellIcon then
-                        local iconButton = CreateFrame("Button", nil, content)
-                        iconButton:SetSize(32, 32)
-                        iconButton:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 20, yOffset + 2)
+                    local iconTexture = iconButton:CreateTexture(nil, "ARTWORK")
+                    iconTexture:SetAllPoints(iconButton)
+                    iconTexture:SetTexture(nodeInfo.talentInfo.spellIcon)
 
-                        local iconTexture = iconButton:CreateTexture(nil, "ARTWORK")
-                        iconTexture:SetAllPoints(iconButton)
-                        iconTexture:SetTexture(nodeInfo.talentInfo.spellIcon)
-
-                        -- Add tooltip
-                        if nodeInfo.talentInfo.spellID then
-                            iconButton:SetScript("OnEnter", function(self)
-                                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                                GameTooltip:SetSpellByID(nodeInfo.talentInfo.spellID)
-                                GameTooltip:Show()
-                            end)
-                            iconButton:SetScript("OnLeave", function(self)
-                                GameTooltip:Hide()
-                            end)
-                        end
+                    -- Add tooltip
+                    if nodeInfo.talentInfo.spellID then
+                        iconButton:SetScript("OnEnter", function(self)
+                            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                            GameTooltip:SetSpellByID(nodeInfo.talentInfo.spellID)
+                            GameTooltip:Show()
+                        end)
+                        iconButton:SetScript("OnLeave", function(self)
+                            GameTooltip:Hide()
+                        end)
                     end
-
-                    -- Create text
-                    local nodeText = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-                    nodeText:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 60, yOffset)
-
-                    local nodeDesc = ""
-                    if nodeInfo.talentInfo and nodeInfo.talentInfo.spellName then
-                        nodeDesc = nodeInfo.talentInfo.spellName
-
-                        -- Add rank information
-                        if nodeInfo.talentInfo.maxRanks and nodeInfo.talentInfo.maxRanks > 1 then
-                            local currentRanks = nodeInfo.ranks or nodeInfo.talentInfo.maxRanks
-                            nodeDesc = nodeDesc .. " " .. currentRanks .. "/" .. nodeInfo.talentInfo.maxRanks
-                        end
-                    else
-                        nodeDesc = "Unknown Talent"
-                    end
-
-                    nodeText:SetText(nodeDesc)
-                    nodeText:SetTextColor(0.9, 0.9, 0.9, 1)
-                    yOffset = yOffset - 36
                 end
-            end
 
-            return yOffset
+                -- Create text
+                local nodeText = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+                nodeText:SetPoint("TOPLEFT", content, "TOPLEFT", xOffset + 60, yOffset)
+                table.insert(createdElements[columnKey], nodeText)
+
+                local nodeDesc = ""
+                if nodeInfo.talentInfo and nodeInfo.talentInfo.spellName then
+                    nodeDesc = nodeInfo.talentInfo.spellName
+
+                    -- Add rank information
+                    if nodeInfo.talentInfo.maxRanks and nodeInfo.talentInfo.maxRanks > 1 then
+                        local currentRanks = nodeInfo.ranks or nodeInfo.talentInfo.maxRanks
+                        nodeDesc = nodeDesc .. " " .. currentRanks .. "/" .. nodeInfo.talentInfo.maxRanks
+                    end
+                else
+                    nodeDesc = "Unknown Talent"
+                end
+
+                nodeText:SetText(nodeDesc)
+                nodeText:SetTextColor(0.9, 0.9, 0.9, 1)
+                yOffset = yOffset - 36
+            end
         end
 
-        -- Render both columns
-        local yOffset1 = RenderLoadoutColumn(decodedData1, errorMsg1, 0, "Loadout 1")
-        local yOffset2 = RenderLoadoutColumn(decodedData2, errorMsg2, 490, "Loadout 2")
-
-        -- Adjust content height based on the taller column
-        local maxHeight = math.abs(math.min(yOffset1 or 0, yOffset2 or 0)) + 50
-        content:SetHeight(maxHeight)
+        return yOffset
     end
 
-    -- Add refresh on text change (now that RenderColumns is defined)
-    local refreshTimer = nil
-    local function DelayedRefresh()
-        if refreshTimer then
-            refreshTimer:Cancel()
+    -- Function to refresh a specific column
+    local function RefreshColumn(columnNum)
+        local columnKey = "column" .. columnNum
+        local inputBox = columnNum == 1 and input1 or input2
+
+        -- Cleanup elements for this specific column
+        for _, element in pairs(createdElements[columnKey]) do
+            if element and element.Hide then
+                element:Hide()
+            end
+            if element and element.SetParent then
+                element:SetParent(nil)
+            end
         end
-        refreshTimer = C_Timer.NewTimer(0.3, function()
-            RefreshDiff()
-            refreshTimer = nil
+        -- Clear the tracking table for this column
+        createdElements[columnKey] = {}
+
+        local loadoutString = inputBox:GetText() or ""
+        local decodedData, errorMsg = GST_DiffUtils.ValidateAndDecode(loadoutString)
+
+        -- Render just this column
+        local xOffset = columnNum == 1 and 0 or 490
+        local columnTitle = "Loadout " .. columnNum
+        RenderColumn(decodedData, errorMsg, xOffset, columnTitle, columnKey)
+    end
+
+    -- Add refresh on text change (now that RenderColumn is defined)
+    local refreshTimers = { nil, nil }
+    local function DelayedRefresh(columnNum)
+        -- Clear any existing timer for this column
+        refreshTimers[columnNum] = nil
+
+        -- Create new timer
+        refreshTimers[columnNum] = C_Timer.NewTimer(0.3, function()
+            RefreshColumn(columnNum)
+            refreshTimers[columnNum] = nil
         end)
     end
 
     input1:SetScript("OnTextChanged", function(self, userInput)
-        if userInput then DelayedRefresh() end
+        if userInput then DelayedRefresh(1) end
     end)
     input2:SetScript("OnTextChanged", function(self, userInput)
-        if userInput then DelayedRefresh() end
+        if userInput then DelayedRefresh(2) end
     end)
 
-    -- Also refresh on Enter/Escape for immediate feedback
+    -- Also refresh on Enter for immediate feedback
     input1:SetScript("OnEnterPressed", function(self)
         self:ClearFocus()
-        RefreshDiff()
+        RefreshColumn(1)
     end)
     input2:SetScript("OnEnterPressed", function(self)
         self:ClearFocus()
-        RefreshDiff()
+        RefreshColumn(2)
     end)
-
-    -- Get initial loadout strings and decode
-    local loadoutString = input1:GetText()
-    local loadout2String = input2:GetText()
-    local decodedData1, errorMsg1 = GST_DiffUtils.ValidateAndDecode(loadoutString)
-    local decodedData2, errorMsg2 = GST_DiffUtils.ValidateAndDecode(loadout2String)
-
-    -- Initial render
-    RenderColumns(decodedData1, errorMsg1, decodedData2, errorMsg2)
 
     -- Store frame reference
     DiffFrame = frame
+
+    -- Initial render of both columns (after all functions are defined)
+    RefreshColumn(1)
+    RefreshColumn(2)
 
     -- Show the frame
     frame:Show()
