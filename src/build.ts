@@ -521,6 +521,7 @@ async function compileEnchants(
   data: { bracket: string; data: Root }[],
   fileName: string
 ) {
+  const ignoredEnchants: number[] = [7933, 7924];
   await buildRaidbotsEnchantNameMap();
 
   let lines = `GSTEnchantsDb = {\n`;
@@ -552,6 +553,9 @@ async function compileEnchants(
                 histoItem.item.enchantments.length > 0
               ) {
                 for (const enchant of histoItem.item.enchantments) {
+                  if (enchant.enchantment_slot.type !== "PERMANENT") continue;
+                  if (ignoredEnchants.includes(enchant.enchantment_id))
+                    continue;
                   const enchantKey = `${enchant.enchantment_id}_${histoItem.item.slot.name}_${enchant.enchantment_slot.type}`;
                   // maybeLog(JSON.stringify(enchant));
                   // maybeLog(enchantKey);
