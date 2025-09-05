@@ -38,5 +38,4 @@ usageDbshuffle_druid_guardian = {
 ["104246944-"] = {25.0, 4, "Astral Aspirant's Insignia of Alacrity (Haste) (50.0% - #3)"},
 ["104230356-"] = {25.0, 5, "Astral Aspirant's Insignia of Alacrity (Haste) (50.0% - #4)"},
 ["104230353-"] = {25.0, 6, "Astral Aspirant's Insignia of Alacrity (Haste) (50.0% - #5)"},
-["104232543-VERSATILITY"] = {25.0, 7, "Astral Aspirant's Insignia of Alacrity (Haste) (50.0% - #6)"},
 };
