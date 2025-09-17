@@ -1,9 +1,8 @@
 usageDbshuffle_druid_guardian = {
 ["104_profileCount"] = 4,
 ["104237682-HASTE_RATING-MASTERY_RATING"] = {100.0, 1, ""},
-["104215144-HASTE_RATING-VERSATILITY"] = {50.0, 1, ""},
-["104185820-HASTE_RATING-VERSATILITY"] = {25.0, 2, "Algari Competitor's Amulet (Haste-Vers) (50.0% - #1)"},
-["104215136-HASTE_RATING-VERSATILITY"] = {25.0, 3, "Algari Competitor's Amulet (Haste-Vers) (50.0% - #2)"},
+["104185820-HASTE_RATING-VERSATILITY"] = {50.0, 1, ""},
+["104215144-HASTE_RATING-VERSATILITY"] = {50.0, 2, "Cabochon of the Infinite Flight (Haste-Vers) (50.0% - #1)"},
 ["104237680-HASTE_RATING-VERSATILITY"] = {75.0, 1, ""},
 ["104234500-VERSATILITY-HASTE_RATING"] = {25.0, 2, "Ritual Pauldrons of the Mother Eagle (Haste-Vers) (75.0% - #1)"},
 ["104237685-MASTERY_RATING-HASTE_RATING"] = {50.0, 1, ""},
