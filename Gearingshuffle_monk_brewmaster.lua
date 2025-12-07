@@ -51,6 +51,7 @@ usageDbshuffle_monk_brewmaster = {
 ["268230638-CRIT_RATING"] = {12.5, 4, "Astral Gladiator's Medallion () (25.0% - #3)"},
 ["268238390-"] = {12.5, 5, "Astral Gladiator's Medallion () (25.0% - #4)"},
 ["268242395-"] = {12.5, 6, "Astral Gladiator's Medallion () (25.0% - #5)"},
+["268230640-"] = {12.5, 7, "Astral Gladiator's Medallion () (25.0% - #6)"},
 ["270_profileCount"] = 2,
 ["270230486-VERSATILITY-HASTE_RATING"] = {100.0, 1, ""},
 ["270215144-HASTE_RATING-VERSATILITY"] = {50.0, 1, ""},
