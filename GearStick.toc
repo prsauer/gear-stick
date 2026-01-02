@@ -1,53 +1,53 @@
 ## Interface: 110200
 ## Title: GearStick
 ## Author: Armsperson
-## Version: 2026.01.02.05
+## Version: 2026.01.02.11
 ## SavedVariables: GearStickSettings
 ## X-Curse-Project-ID: 937058
  
 BracketNames.lua
-Gearingshuffle_monk_mistweaver.lua
-Gearingshuffle_warrior_fury.lua
-Gearingshuffle_warlock_destruction.lua
-Gearingshuffle_druid_guardian.lua
-Gearingshuffle_hunter_survival.lua
-Gearingshuffle_demonhunter_havoc.lua
-Gearingshuffle_paladin_retribution.lua
-Gearingshuffle_paladin_protection.lua
-Gearingshuffle_warrior_arms.lua
-Gearingshuffle_demonhunter_vengeance.lua
-GearingPvE.lua
-Gearingshuffle_mage_frost.lua
-Gearingshuffle_shaman_enhancement.lua
-Gearingshuffle_paladin_holy.lua
-Gearingshuffle_mage_arcane.lua
-Gearingshuffle_rogue_outlaw.lua
-Gearingshuffle_evoker_augmentation.lua
-Gearingshuffle_druid_feral.lua
-Gearingshuffle_priest_discipline.lua
-Gearingshuffle_deathknight_frost.lua
-Gearingshuffle_shaman_restoration.lua
-Gearingshuffle_deathknight_unholy.lua
-Gearingshuffle_evoker_devastation.lua
-Gearingshuffle_hunter_marksmanship.lua
-Gearing3v3.lua
-Gearingshuffle_druid_restoration.lua
-Gearingshuffle_monk_brewmaster.lua
 Gearing2v2.lua
-Gearingshuffle_rogue_subtlety.lua
-Gearingshuffle_priest_shadow.lua
-Gearingshuffle_warlock_demonology.lua
-Gearingshuffle_warrior_protection.lua
-Gearingshuffle_monk_windwalker.lua
+Gearing3v3.lua
+GearingPvE.lua
 Gearingshuffle_deathknight_blood.lua
-Gearingshuffle_evoker_preservation.lua
-Gearingshuffle_warlock_affliction.lua
-Gearingshuffle_shaman_elemental.lua
-Gearingshuffle_hunter_beastmastery.lua
-Gearingshuffle_priest_holy.lua
-Gearingshuffle_mage_fire.lua
-Gearingshuffle_rogue_assassination.lua
+Gearingshuffle_deathknight_frost.lua
+Gearingshuffle_deathknight_unholy.lua
+Gearingshuffle_demonhunter_havoc.lua
+Gearingshuffle_demonhunter_vengeance.lua
 Gearingshuffle_druid_balance.lua
+Gearingshuffle_druid_feral.lua
+Gearingshuffle_druid_guardian.lua
+Gearingshuffle_druid_restoration.lua
+Gearingshuffle_evoker_augmentation.lua
+Gearingshuffle_evoker_devastation.lua
+Gearingshuffle_evoker_preservation.lua
+Gearingshuffle_hunter_beastmastery.lua
+Gearingshuffle_hunter_marksmanship.lua
+Gearingshuffle_hunter_survival.lua
+Gearingshuffle_mage_arcane.lua
+Gearingshuffle_mage_fire.lua
+Gearingshuffle_mage_frost.lua
+Gearingshuffle_monk_brewmaster.lua
+Gearingshuffle_monk_mistweaver.lua
+Gearingshuffle_monk_windwalker.lua
+Gearingshuffle_paladin_holy.lua
+Gearingshuffle_paladin_protection.lua
+Gearingshuffle_paladin_retribution.lua
+Gearingshuffle_priest_discipline.lua
+Gearingshuffle_priest_holy.lua
+Gearingshuffle_priest_shadow.lua
+Gearingshuffle_rogue_assassination.lua
+Gearingshuffle_rogue_outlaw.lua
+Gearingshuffle_rogue_subtlety.lua
+Gearingshuffle_shaman_elemental.lua
+Gearingshuffle_shaman_enhancement.lua
+Gearingshuffle_shaman_restoration.lua
+Gearingshuffle_warlock_affliction.lua
+Gearingshuffle_warlock_demonology.lua
+Gearingshuffle_warlock_destruction.lua
+Gearingshuffle_warrior_arms.lua
+Gearingshuffle_warrior_fury.lua
+Gearingshuffle_warrior_protection.lua
 SlotGear.lua
 SlotGearIndexes.lua
 Enchants.lua
@@ -60,5 +60,6 @@ EnchantsUI.lua
 SummaryUI.lua
 DiffUtils.lua
 DiffUI.lua
+ConfigUI.lua
 Logging.lua
 GearStick.lua
