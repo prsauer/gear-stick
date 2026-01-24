@@ -44,7 +44,8 @@ export type ShuffleLeaderBoardName =
   | "shuffle-druid-restoration"
   | "shuffle-shaman-elemental"
   | "shuffle-mage-arcane"
-  | "shuffle-warrior-protection";
+  | "shuffle-warrior-protection"
+  | "shuffle-demonhunter-devourer";
 
 export const shuffleSpecs: string[] = [
   "shuffle-warrior-fury",
@@ -86,6 +87,7 @@ export const shuffleSpecs: string[] = [
   "shuffle-shaman-elemental",
   "shuffle-mage-arcane",
   "shuffle-warrior-protection",
+  "shuffle-demonhunter-devourer",
 ];
 
 type RaidbotsEnchant = {
