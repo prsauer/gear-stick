@@ -41,4 +41,5 @@ GSTBracketNames = {
   "shuffle_shaman_elemental",
   "shuffle_mage_arcane",
   "shuffle_warrior_protection",
+  "shuffle_demonhunter_devourer",
 };
