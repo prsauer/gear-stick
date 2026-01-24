@@ -1,6 +1,6 @@
 #!/bin/bash
 
-WOW_VERSION="110200"
+WOW_VERSION="120000"
 ADDON_VERSION=$(date '+%Y.%m.%d.%H')
 
 rm -rf dist
