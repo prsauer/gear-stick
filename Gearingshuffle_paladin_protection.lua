@@ -177,8 +177,8 @@ usageDbshuffle_paladin_protection = {
 ["70215137-VERSATILITY-MASTERY_RATING"] = {84.6, 1, ""},
 ["70230634-VERSATILITY-MASTERY_RATING"] = {15.4, 2, "Algari Competitor's Signet (Vers-Mastery) (84.6% - #1)"},
 ["70230641-"] = {30.8, 1, ""},
-["70230639-HASTE_RATING"] = {61.5, 2, "Astral Gladiator's Medallion () (30.8% - #1)"},
-["70219932-HASTE_RATING"] = {7.7, 3, "Astral Gladiator's Medallion () (30.8% - #2)"},
-["70230638-CRIT_RATING"] = {7.7, 4, "Astral Gladiator's Medallion () (30.8% - #3)"},
+["70230639-HASTE_RATING"] = {53.8, 2, "Astral Gladiator's Medallion () (30.8% - #1)"},
+["70230638-CRIT_RATING"] = {7.7, 3, "Astral Gladiator's Medallion () (30.8% - #2)"},
+["70219932-HASTE_RATING"] = {7.7, 4, "Astral Gladiator's Medallion () (30.8% - #3)"},
 ["70219931-"] = {7.7, 5, "Astral Gladiator's Medallion () (30.8% - #4)"},
 };
