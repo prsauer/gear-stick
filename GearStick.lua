@@ -57,28 +57,20 @@ button:SetScript("OnClick", function(self, button, down)
 end)
 
 
-local function GetStatsKeyFromTooltipHelper(...)
-	-- Extract stats with their values and sort by value (highest first)
+local function GetStatsKeyFromTooltipData(tooltipData)
 	local stats = {}
-
-	for i = 1, select("#", ...) do
-		local region = select(i, ...)
-		if region and region:GetObjectType() == "FontString" then
-			local text = region:GetText() -- string or nil
-			-- if first char is not +, skip line:
-			GST_ItemUtils.ParseLineAndWriteSecondariesTable(text, stats)
+	if tooltipData and tooltipData.lines then
+		for _, line in ipairs(tooltipData.lines) do
+			if line.leftText then
+				GST_ItemUtils.ParseLineAndWriteSecondariesTable(line.leftText, stats)
+			end
 		end
 	end
-
 	return GST_ItemUtils.ReduceSecondariesTableToSlug(stats)
 end
 
-local function GetStatsKeyFromTooltip(tooltip)
-	return GetStatsKeyFromTooltipHelper(tooltip:GetRegions())
-end
-
-local function writeTooltip(tooltip, itemID, currentSpecId)
-	local statsKey = GetStatsKeyFromTooltip(tooltip)
+local function writeTooltip(tooltip, tooltipData, itemID, currentSpecId)
+	local statsKey = GetStatsKeyFromTooltipData(tooltipData)
 	local key = currentSpecId .. itemID .. '-' .. statsKey
 	local itemInventoryType = C_Item.GetItemInventoryTypeByID(itemID)
 
@@ -294,7 +286,7 @@ function GST_OnTooltipSetItem(tooltip, tooltipData)
 	end
 
 	if (itemID) then
-		writeTooltip(tooltip, itemID, currentSpecId)
+		writeTooltip(tooltip, tooltipData, itemID, currentSpecId)
 	end
 
 	tooltip:Show();
