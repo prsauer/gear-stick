@@ -11,8 +11,8 @@ usageDbshuffle_monk_brewmaster = {
 ["268250016-VERSATILITY-CRIT_RATING"] = {100.0, 1, ""},
 ["268255337-VERSATILITY-CRIT_RATING"] = {100.0, 1, ""},
 ["268255344-VERSATILITY-CRIT_RATING"] = {100.0, 1, ""},
-["268255333-VERSATILITY-MASTERY_RATING"] = {100.0, 1, ""},
-["268255332-VERSATILITY-CRIT_RATING"] = {100.0, 2, "Galactic Aspirant's Signet (Vers-Mastery) (100.0% - #1)"},
-["268255328-HASTE_RATING"] = {100.0, 1, ""},
-["268255327-"] = {100.0, 2, "Galactic Aspirant's Insignia of Alacrity (Haste) (100.0% - #1)"},
+["268255332-VERSATILITY-CRIT_RATING"] = {100.0, 1, ""},
+["268255333-VERSATILITY-MASTERY_RATING"] = {100.0, 2, "Galactic Aspirant's Band (Vers-Crit) (100.0% - #1)"},
+["268255327-"] = {100.0, 1, ""},
+["268255328-HASTE_RATING"] = {100.0, 2, "Galactic Aspirant's Medallion () (100.0% - #1)"},
 };
