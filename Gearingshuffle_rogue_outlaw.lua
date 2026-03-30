@@ -33,6 +33,5 @@ usageDbshuffle_rogue_outlaw = {
 ["260255331-VERSATILITY-HASTE_RATING"] = {33.3, 2, "Thalassian Competitor's Signet (Haste-Vers) (66.7% - #1)"},
 ["260255332-VERSATILITY-CRIT_RATING"] = {33.3, 3, "Thalassian Competitor's Signet (Haste-Vers) (66.7% - #2)"},
 ["260255328-HASTE_RATING"] = {100.0, 1, ""},
-["260255327-"] = {66.7, 2, "Galactic Aspirant's Insignia of Alacrity (Haste) (100.0% - #1)"},
-["260255330-"] = {33.3, 3, "Galactic Aspirant's Insignia of Alacrity (Haste) (100.0% - #2)"},
+["260255327-"] = {100.0, 2, "Galactic Aspirant's Insignia of Alacrity (Haste) (100.0% - #1)"},
 };
