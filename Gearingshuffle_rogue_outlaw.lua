@@ -48,6 +48,5 @@ usageDbshuffle_rogue_outlaw = {
 ["260255328-HASTE_RATING"] = {60.0, 1, ""},
 ["260255327-"] = {20.0, 2, "Galactic Aspirant's Insignia of Alacrity (Haste) (60.0% - #1)"},
 ["260249345-"] = {20.0, 3, "Galactic Aspirant's Insignia of Alacrity (Haste) (60.0% - #2)"},
-["260255330-"] = {20.0, 4, "Galactic Aspirant's Insignia of Alacrity (Haste) (60.0% - #3)"},
-["260252420-"] = {20.0, 5, "Galactic Aspirant's Insignia of Alacrity (Haste) (60.0% - #4)"},
+["260264507-"] = {20.0, 4, "Galactic Aspirant's Insignia of Alacrity (Haste) (60.0% - #3)"},
 };
