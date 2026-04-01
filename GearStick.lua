@@ -182,6 +182,20 @@ function frame:OnEvent(event, arg1, arg2)
 		if GearStickSettings == nil then
 			GearStickSettings = {};
 		end
+		-- Apply defaults for any missing settings so all brackets show by default
+		local defaults = {
+			["2v2"] = true,
+			["3v3"] = true,
+			["pve"] = true,
+			["bis"] = false,
+			["debug"] = false,
+			["profiling"] = false,
+		}
+		for key, value in pairs(defaults) do
+			if GearStickSettings[key] == nil then
+				GearStickSettings[key] = value
+			end
+		end
 		local settingsEnd = debugprofilestop()
 		local settingsTime = settingsEnd - settingsStart
 
@@ -347,7 +361,14 @@ SlashCmdList.GST = function(arg1)
 	end
 	-- reset all options
 	if msg == "reset" then
-		GearStickSettings = {}
+		GearStickSettings = {
+			["2v2"] = true,
+			["3v3"] = true,
+			["pve"] = true,
+			["bis"] = false,
+			["debug"] = false,
+			["profiling"] = false,
+		}
 		GST_LogUser("Settings have been reset.")
 		return
 	end
