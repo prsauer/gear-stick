@@ -104,8 +104,13 @@ end
 
 -- Concats a table of secondary stats into a slug
 function GST_ItemUtils.ReduceSecondariesTableToSlug(tbl)
-    -- Sort by value (highest first)
-    table.sort(tbl, function(a, b) return a.value > b.value end)
+    -- Sort by value (highest first), then alphabetically by type for stable ordering
+    table.sort(tbl, function(a, b)
+        if a.value ~= b.value then
+            return a.value > b.value
+        end
+        return a.type < b.type
+    end)
     -- debug(tbl)
 
     -- Build result string

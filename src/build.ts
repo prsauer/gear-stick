@@ -199,7 +199,11 @@ function getStatsTag(item: Histo, rename: boolean = true) {
   const stats = item.item.stats
     ? item.item.stats
         .filter((s) => secondaryStats.includes(s.type?.type))
-        .sort((a, b) => (b.value || 0) - (a.value || 0))
+        .sort((a, b) => {
+          const diff = (b.value || 0) - (a.value || 0);
+          if (diff !== 0) return diff;
+          return (a.type?.type || "").localeCompare(b.type?.type || "");
+        })
         .map((s) => (rename ? niceNameMap[s.type!.type] : s.type.type))
         .join("-")
     : "";
