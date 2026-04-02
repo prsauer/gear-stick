@@ -9,7 +9,7 @@ local function CreateConfigUI()
 
     -- Create the main frame
     local frame = CreateFrame("Frame", "GSTConfigFrame", UIParent, "BackdropTemplate")
-    frame:SetSize(400, 350)
+    frame:SetSize(400, 395)
     frame:SetPoint("CENTER")
     frame:SetFrameStrata("FULLSCREEN_DIALOG")
 
@@ -41,6 +41,7 @@ local function CreateConfigUI()
         { key = "3v3",       label = "3v3 Arena Tooltips",    desc = "Show 3v3 arena usage data in item tooltips" },
         { key = "pve",       label = "PvE Tooltips",          desc = "Show PvE usage data in item tooltips" },
         { key = "bis",       label = "Best-in-Slot Info",     desc = "Show best-in-slot recommendations in tooltips" },
+        { key = "talentDropdown", label = "Talent Loadout Dropdown", desc = "Add GearStick builds to the talent loadout dropdown menu", default = true },
         { key = "debug",     label = "Debug Mode",            desc = "Show debug information and extra details" },
         { key = "profiling", label = "Performance Profiling", desc = "Enable performance timing measurements" }
     }
@@ -67,8 +68,12 @@ local function CreateConfigUI()
         desc:SetTextColor(0.7, 0.7, 0.7, 1)
         desc:SetWidth(300)
 
-        -- Set checkbox state based on current setting
-        checkbox:SetChecked(GearStickSettings[setting.key] == true)
+        -- Set checkbox state based on current setting (respecting defaults)
+        local value = GearStickSettings[setting.key]
+        if value == nil then
+            value = setting.default or false
+        end
+        checkbox:SetChecked(value)
 
         -- Handle checkbox clicks
         checkbox:SetScript("OnClick", function(self)
@@ -106,8 +111,9 @@ local function CreateConfigUI()
     resetButton:SetScript("OnClick", function()
         -- Reset all settings
         for _, setting in ipairs(settings) do
-            GearStickSettings[setting.key] = false
-            checkboxes[setting.key]:SetChecked(false)
+            local defaultVal = setting.default or false
+            GearStickSettings[setting.key] = defaultVal
+            checkboxes[setting.key]:SetChecked(defaultVal)
         end
         GST_LogUser("All settings have been reset")
     end)

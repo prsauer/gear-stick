@@ -56,11 +56,11 @@ BracketUtils.lua
 Loadouts.lua
 ItemUtils.lua
 Talents.lua
-TalentDropdown.lua
 EnchantsUI.lua
 SummaryUI.lua
 DiffUtils.lua
 DiffUI.lua
 ConfigUI.lua
 Logging.lua
+TalentDropdown.lua
 GearStick.lua
