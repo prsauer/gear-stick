@@ -56,6 +56,7 @@ BracketUtils.lua
 Loadouts.lua
 ItemUtils.lua
 Talents.lua
+TalentDropdown.lua
 EnchantsUI.lua
 SummaryUI.lua
 DiffUtils.lua

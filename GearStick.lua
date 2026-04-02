@@ -203,6 +203,11 @@ function frame:OnEvent(event, arg1, arg2)
 		GST_LogProfiling("EnchantsIndexes initialized in " .. string.format("%.2f", enchantsIndexTime) .. "ms")
 		GST_LogProfiling("Settings initialized in " .. string.format("%.2f", settingsTime) .. "ms")
 		GST_LogProfiling("News check completed in " .. string.format("%.2f", newsTime) .. "ms")
+		-- Initialize talent dropdown hook for native talent UI integration
+		if GST_TalentDropdown and GST_TalentDropdown.Initialize then
+			GST_TalentDropdown.Initialize()
+		end
+
 		GST_LogProfiling("Total addon load time: " .. string.format("%.2f", totalTime) .. "ms")
 	elseif event == "PLAYER_SPECIALIZATION_CHANGED" then
 		local specChangeStart = debugprofilestop()
@@ -236,6 +241,11 @@ function frame:OnEvent(event, arg1, arg2)
 			-- Update Diff UI if it's currently shown
 			if GST_DiffUI and GST_DiffUI.RefreshIfVisible then
 				GST_DiffUI.RefreshIfVisible()
+			end
+
+			-- Update cached spec for talent dropdown
+			if GST_TalentDropdown and GST_TalentDropdown.OnSpecChanged then
+				GST_TalentDropdown.OnSpecChanged()
 			end
 		end
 
