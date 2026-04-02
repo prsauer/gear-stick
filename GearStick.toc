@@ -62,4 +62,5 @@ DiffUtils.lua
 DiffUI.lua
 ConfigUI.lua
 Logging.lua
+TalentDropdown.lua
 GearStick.lua

@@ -162,7 +162,14 @@ frame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED"); -- Fired when player chang
 frame:RegisterEvent("COMBAT_RATING_UPDATE");          -- Fired when player stats change (equipment, enchants, gems)
 
 function frame:OnEvent(event, arg1, arg2)
-	if event == "ADDON_LOADED" and arg1 == "GearStick" then
+	if event == "ADDON_LOADED" and arg1 == "Blizzard_PlayerSpells" then
+		-- Initialize talent dropdown after talent frame is ready
+		if GST_TalentDropdown and GST_TalentDropdown.Initialize then
+			C_Timer.After(1, function()
+				GST_TalentDropdown.Initialize()
+			end)
+		end
+	elseif event == "ADDON_LOADED" and arg1 == "GearStick" then
 		local addonLoadStart = debugprofilestop()
 
 		-- Initialize SlotGearIndexes
@@ -181,6 +188,9 @@ function frame:OnEvent(event, arg1, arg2)
 		local settingsStart = debugprofilestop()
 		if GearStickSettings == nil then
 			GearStickSettings = {};
+		end
+		if GearStickSettings["talentDropdown"] == nil then
+			GearStickSettings["talentDropdown"] = true
 		end
 		local settingsEnd = debugprofilestop()
 		local settingsTime = settingsEnd - settingsStart
@@ -203,6 +213,8 @@ function frame:OnEvent(event, arg1, arg2)
 		GST_LogProfiling("EnchantsIndexes initialized in " .. string.format("%.2f", enchantsIndexTime) .. "ms")
 		GST_LogProfiling("Settings initialized in " .. string.format("%.2f", settingsTime) .. "ms")
 		GST_LogProfiling("News check completed in " .. string.format("%.2f", newsTime) .. "ms")
+		-- Talent dropdown hook is initialized when Blizzard_PlayerSpells loads (see below)
+
 		GST_LogProfiling("Total addon load time: " .. string.format("%.2f", totalTime) .. "ms")
 	elseif event == "PLAYER_SPECIALIZATION_CHANGED" then
 		local specChangeStart = debugprofilestop()
@@ -236,6 +248,11 @@ function frame:OnEvent(event, arg1, arg2)
 			-- Update Diff UI if it's currently shown
 			if GST_DiffUI and GST_DiffUI.RefreshIfVisible then
 				GST_DiffUI.RefreshIfVisible()
+			end
+
+			-- Update cached spec for talent dropdown
+			if GST_TalentDropdown and GST_TalentDropdown.OnSpecChanged then
+				GST_TalentDropdown.OnSpecChanged()
 			end
 		end
 
