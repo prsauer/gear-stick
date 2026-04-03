@@ -30,6 +30,7 @@ echo "DiffUtils.lua" >> GearStick.toc
 echo "DiffUI.lua" >> GearStick.toc
 echo "ConfigUI.lua" >> GearStick.toc
 echo "Logging.lua" >> GearStick.toc
+echo "TalentDropdown.lua" >> GearStick.toc
 echo "GearStick.lua" >> GearStick.toc
 
 npm run compile
