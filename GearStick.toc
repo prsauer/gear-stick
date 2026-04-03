@@ -1,7 +1,7 @@
 ## Interface: 120000
 ## Title: GearStick
 ## Author: Armsperson
-## Version: 2026.04.03.00
+## Version: 2026.04.03.01
 ## SavedVariables: GearStickSettings
 ## X-Curse-Project-ID: 937058
  
@@ -62,4 +62,5 @@ DiffUtils.lua
 DiffUI.lua
 ConfigUI.lua
 Logging.lua
+TalentDropdown.lua
 GearStick.lua
