@@ -2,14 +2,34 @@ GST_ConfigUI = {}
 
 local ConfigFrame = nil
 
+-- Layout constants for config dialog
+local FRAME_WIDTH = 400
+local PADDING_TOP = 48       -- title area (top inset + title height + gap)
+local PADDING_BOTTOM = 50    -- bottom buttons area
+local SETTINGS_TOP_INSET = 10
+local SETTING_ROW_HEIGHT = 45
+
+-- Settings data with descriptions (declared here so frame height can be computed)
+local settings = {
+    { key = "2v2",       label = "2v2 Arena Tooltips",    desc = "Show 2v2 arena usage data in item tooltips" },
+    { key = "3v3",       label = "3v3 Arena Tooltips",    desc = "Show 3v3 arena usage data in item tooltips" },
+    { key = "pve",       label = "PvE Tooltips",          desc = "Show PvE usage data in item tooltips" },
+    { key = "bis",       label = "Best-in-Slot Info",     desc = "Show best-in-slot recommendations in tooltips" },
+    { key = "talentDropdown", label = "Talent Loadout Dropdown", desc = "Add GearStick builds to the talent loadout dropdown menu", default = true },
+    { key = "debug",     label = "Debug Mode",            desc = "Show debug information and extra details" },
+    { key = "profiling", label = "Performance Profiling", desc = "Enable performance timing measurements" }
+}
+
 local function CreateConfigUI()
     if ConfigFrame then
         return ConfigFrame
     end
 
+    local frameHeight = PADDING_TOP + SETTINGS_TOP_INSET + #settings * SETTING_ROW_HEIGHT + PADDING_BOTTOM
+
     -- Create the main frame
     local frame = CreateFrame("Frame", "GSTConfigFrame", UIParent, "BackdropTemplate")
-    frame:SetSize(400, 395)
+    frame:SetSize(FRAME_WIDTH, frameHeight)
     frame:SetPoint("CENTER")
     frame:SetFrameStrata("FULLSCREEN_DIALOG")
 
@@ -33,21 +53,10 @@ local function CreateConfigUI()
     -- Create container for settings
     local settingsContainer = CreateFrame("Frame", nil, frame)
     settingsContainer:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, -20)
-    settingsContainer:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -20, 50)
-
-    -- Settings data with descriptions
-    local settings = {
-        { key = "2v2",       label = "2v2 Arena Tooltips",    desc = "Show 2v2 arena usage data in item tooltips" },
-        { key = "3v3",       label = "3v3 Arena Tooltips",    desc = "Show 3v3 arena usage data in item tooltips" },
-        { key = "pve",       label = "PvE Tooltips",          desc = "Show PvE usage data in item tooltips" },
-        { key = "bis",       label = "Best-in-Slot Info",     desc = "Show best-in-slot recommendations in tooltips" },
-        { key = "talentDropdown", label = "Talent Loadout Dropdown", desc = "Add GearStick builds to the talent loadout dropdown menu", default = true },
-        { key = "debug",     label = "Debug Mode",            desc = "Show debug information and extra details" },
-        { key = "profiling", label = "Performance Profiling", desc = "Enable performance timing measurements" }
-    }
+    settingsContainer:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -20, PADDING_BOTTOM)
 
     local checkboxes = {}
-    local yOffset = -10
+    local yOffset = -SETTINGS_TOP_INSET
 
     -- Create checkboxes for each setting
     for i, setting in ipairs(settings) do
@@ -88,7 +97,7 @@ local function CreateConfigUI()
         end)
 
         checkboxes[setting.key] = checkbox
-        yOffset = yOffset - 45
+        yOffset = yOffset - SETTING_ROW_HEIGHT
     end
 
     -- Add Summary button
@@ -131,7 +140,6 @@ local function CreateConfigUI()
 
     -- Store references for refreshing
     frame.checkboxes = checkboxes
-    frame.settings = settings
 
     ConfigFrame = frame
     return frame
@@ -143,7 +151,7 @@ local function RefreshConfigUI()
     end
 
     -- Update checkbox states from current settings
-    for _, setting in ipairs(ConfigFrame.settings) do
+    for _, setting in ipairs(settings) do
         local checkbox = ConfigFrame.checkboxes[setting.key]
         if checkbox then
             checkbox:SetChecked(GearStickSettings[setting.key] == true)
