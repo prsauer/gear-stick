@@ -25,6 +25,6 @@ usageDbshuffle_druid_guardian = {
 ["104240951-CRIT_RATING-VERSATILITY"] = {50.0, 3, "Thalassian Competitor's Signet (Mastery-Vers) (50.0% - #2)"},
 ["104240951-HASTE_RATING-VERSATILITY"] = {50.0, 4, "Thalassian Competitor's Signet (Mastery-Vers) (50.0% - #3)"},
 ["104255327-"] = {100.0, 1, ""},
-["104255328-HASTE_RATING"] = {50.0, 2, "Galactic Aspirant's Medallion () (100.0% - #1)"},
+["104255614-HASTE_RATING"] = {50.0, 2, "Galactic Aspirant's Medallion () (100.0% - #1)"},
 ["104255326-HASTE_RATING"] = {50.0, 3, "Galactic Aspirant's Medallion () (100.0% - #2)"},
 };
