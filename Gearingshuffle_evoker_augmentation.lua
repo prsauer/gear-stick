@@ -1,8 +1,8 @@
 usageDbshuffle_evoker_augmentation = {
 ["1473_profileCount"] = 3,
 ["1473244737-VERSATILITY"] = {33.3, 1, ""},
-["1473270492-VERSATILITY-HASTE_RATING"] = {33.3, 2, "Thalassian Competitor's Mail Visor (Vers) (33.3% - #1)"},
-["1473271501-VERSATILITY-HASTE_RATING"] = {33.3, 3, "Thalassian Competitor's Mail Visor (Vers) (33.3% - #2)"},
+["1473271501-VERSATILITY-HASTE_RATING"] = {33.3, 2, "Thalassian Competitor's Mail Visor (Vers) (33.3% - #1)"},
+["1473270492-VERSATILITY-HASTE_RATING"] = {33.3, 3, "Thalassian Competitor's Mail Visor (Vers) (33.3% - #2)"},
 ["1473270534-VERSATILITY-HASTE_RATING"] = {66.7, 1, ""},
 ["1473240952-HASTE_RATING-VERSATILITY"] = {33.3, 2, "Venomous Aspirant's Necklace (Vers-Haste) (66.7% - #1)"},
 ["1473271499-VERSATILITY-HASTE_RATING"] = {66.7, 1, ""},
@@ -26,8 +26,8 @@ usageDbshuffle_evoker_augmentation = {
 ["1473240951-HASTE_RATING-VERSATILITY"] = {66.7, 2, "Venomous Aspirant's Ring (Vers-Haste) (66.7% - #1)"},
 ["1473240951-VERSATILITY-MASTERY_RATING"] = {33.3, 3, "Venomous Aspirant's Ring (Vers-Haste) (66.7% - #2)"},
 ["1473270535-VERSATILITY-MASTERY_RATING"] = {33.3, 4, "Venomous Aspirant's Ring (Vers-Haste) (66.7% - #3)"},
-["1473280097-HASTE_RATING"] = {33.3, 1, ""},
-["1473280118-"] = {33.3, 2, "Venomous Aspirant's Insignia of Alacrity (Haste) (33.3% - #1)"},
-["1473270558-HASTE_RATING"] = {33.3, 3, "Venomous Aspirant's Insignia of Alacrity (Haste) (33.3% - #2)"},
-["1473270556-"] = {33.3, 4, "Venomous Aspirant's Insignia of Alacrity (Haste) (33.3% - #3)"},
+["1473280118-"] = {33.3, 1, ""},
+["1473280097-HASTE_RATING"] = {33.3, 2, "Venomous Aspirant's Medallion () (33.3% - #1)"},
+["1473270558-HASTE_RATING"] = {33.3, 3, "Venomous Aspirant's Medallion () (33.3% - #2)"},
+["1473270556-"] = {33.3, 4, "Venomous Aspirant's Medallion () (33.3% - #3)"},
 };
