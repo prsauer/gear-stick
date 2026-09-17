@@ -1,8 +1,7 @@
 usageDbshuffle_paladin_protection = {
 ["66_profileCount"] = 6,
 ["66270477-VERSATILITY-MASTERY_RATING"] = {66.7, 1, ""},
-["66270795-VERSATILITY-MASTERY_RATING"] = {16.7, 2, "Venomous Aspirant's Plate Helm (Vers-Mastery) (66.7% - #1)"},
-["66271465-VERSATILITY-MASTERY_RATING"] = {16.7, 3, "Venomous Aspirant's Plate Helm (Vers-Mastery) (66.7% - #2)"},
+["66271465-VERSATILITY-MASTERY_RATING"] = {33.3, 2, "Venomous Aspirant's Plate Helm (Vers-Mastery) (66.7% - #1)"},
 ["66240952-HASTE_RATING-VERSATILITY"] = {66.7, 1, ""},
 ["66240952-VERSATILITY-MASTERY_RATING"] = {16.7, 2, "Thalassian Competitor's Amulet (Haste-Vers) (66.7% - #1)"},
 ["66270534-VERSATILITY-HASTE_RATING"] = {16.7, 3, "Thalassian Competitor's Amulet (Haste-Vers) (66.7% - #2)"},
