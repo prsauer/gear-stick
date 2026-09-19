@@ -1,7 +1,7 @@
 usageDbshuffle_warrior_protection = {
 ["73_profileCount"] = 3,
-["73270811-VERSATILITY-MASTERY_RATING"] = {66.7, 1, ""},
-["73271456-VERSATILITY-MASTERY_RATING"] = {33.3, 2, "Venomous Gladiator's Plate Helm (Vers-Mastery) (66.7% - #1)"},
+["73271456-VERSATILITY-MASTERY_RATING"] = {66.7, 1, ""},
+["73270811-VERSATILITY-MASTERY_RATING"] = {33.3, 2, "Tempered Horns of the Jade Warlord (Vers-Mastery) (66.7% - #1)"},
 ["73240952-HASTE_RATING-VERSATILITY"] = {66.7, 1, ""},
 ["73240952-VERSATILITY-MASTERY_RATING"] = {33.3, 2, "Thalassian Competitor's Amulet (Haste-Vers) (66.7% - #1)"},
 ["73271454-VERSATILITY-HASTE_RATING"] = {100.0, 1, ""},
@@ -23,8 +23,7 @@ usageDbshuffle_warrior_protection = {
 ["73240951-HASTE_RATING-VERSATILITY"] = {66.7, 2, "Thalassian Competitor's Signet (Haste-Mastery) (33.3% - #1)"},
 ["73240951-VERSATILITY-MASTERY_RATING"] = {33.3, 3, "Thalassian Competitor's Signet (Haste-Mastery) (33.3% - #2)"},
 ["73280118-"] = {66.7, 1, ""},
-["73270556-"] = {33.3, 2, "Venomous Aspirant's Medallion () (66.7% - #1)"},
-["73270559-HASTE_RATING"] = {33.3, 3, "Venomous Aspirant's Medallion () (66.7% - #2)"},
+["73270559-HASTE_RATING"] = {66.7, 2, "Venomous Aspirant's Medallion () (66.7% - #1)"},
+["73270556-"] = {33.3, 3, "Venomous Aspirant's Medallion () (66.7% - #2)"},
 ["73270558-HASTE_RATING"] = {33.3, 4, "Venomous Aspirant's Medallion () (66.7% - #3)"},
-["73280097-HASTE_RATING"] = {33.3, 5, "Venomous Aspirant's Medallion () (66.7% - #4)"},
 };
