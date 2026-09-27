@@ -84,8 +84,8 @@ usageDbshuffle_paladin_protection = {
 ["70284846-VERSATILITY-MASTERY_RATING"] = {100.0, 1, ""},
 ["70270535-VERSATILITY-MASTERY_RATING"] = {100.0, 1, ""},
 ["70240951-VERSATILITY-MASTERY_RATING"] = {100.0, 2, "Venomous Aspirant's Signet (Vers-Mastery) (100.0% - #1)"},
-["70270558-HASTE_RATING"] = {50.0, 1, ""},
-["70270603-HASTE_RATING"] = {50.0, 2, "Venomous Aspirant's Insignia of Alacrity (Haste) (50.0% - #1)"},
-["70270556-"] = {50.0, 3, "Venomous Aspirant's Insignia of Alacrity (Haste) (50.0% - #2)"},
-["70280118-"] = {50.0, 4, "Venomous Aspirant's Insignia of Alacrity (Haste) (50.0% - #3)"},
+["70270603-HASTE_RATING"] = {33.3, 1, ""},
+["70280118-"] = {33.3, 2, "Venomous Gladiator's Insignia of Alacrity (Haste) (33.3% - #1)"},
+["70270558-HASTE_RATING"] = {33.3, 3, "Venomous Gladiator's Insignia of Alacrity (Haste) (33.3% - #2)"},
+["70270556-"] = {33.3, 4, "Venomous Gladiator's Insignia of Alacrity (Haste) (33.3% - #3)"},
 };
